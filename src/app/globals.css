@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #111827;
@@ -11,6 +13,19 @@
   --muted: #6b7280;
   --accent-orange: #f97316;
   --accent-orange-light: #fed7aa;
+}
+
+.dark {
+  --background: #0b1220;
+  --foreground: #e5e7eb;
+  --brand: #34d399;
+  --brand-light: #6ee7b7;
+  --brand-bg: #052e1f;
+  --card: #111827;
+  --border: #1f2937;
+  --muted: #9ca3af;
+  --accent-orange: #fb923c;
+  --accent-orange-light: #7c2d12;
 }
 
 @theme inline {
@@ -31,40 +46,60 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
+    "Hiragino Sans", "Noto Sans JP", sans-serif;
 }
 
-/* Auth screen gradient background */
 .auth-bg {
   background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
 }
+.dark .auth-bg {
+  background: linear-gradient(135deg, #052e1f 0%, #064e3b 50%, #052e1f 100%);
+}
 
-/* Instagram icon gradient */
 .ig-icon-bg {
   background: linear-gradient(135deg, #fed7aa 0%, #fb923c 50%, #f87171 100%);
 }
 
-/* TikTok icon */
 .tt-icon-bg {
   background: #000000;
 }
 
-/* Card shadow */
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.sidebar-item-active {
-  background: #0f172a;
-  color: white;
+/* Print styles for dashboard / report export */
+@media print {
+  aside,
+  .no-print,
+  button[aria-label="メニューを開く"],
+  button[aria-label="メニューを閉じる"] {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .card,
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  main {
+    padding: 0 !important;
+  }
 }
 
-.sidebar-item {
-  color: #374151;
-}
-
-.sidebar-item:hover {
-  background: #f3f4f6;
+/* Focus ring strengthening for a11y */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
