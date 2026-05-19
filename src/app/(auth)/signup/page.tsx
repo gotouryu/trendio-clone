@@ -23,7 +23,7 @@ export default function SignupDisabledPage() {
             招待制サービス
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-            Trendio Clone は招待制のサービスです。
+            CustomerCare AI は招待制のサービスです。
             <br />
             お客様アカウントは管理者から発行されます。
           </p>
@@ -42,7 +42,7 @@ export default function SignupDisabledPage() {
               href="/login"
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
-              Sign in
+              ログイン
             </Link>
           </div>
         </div>

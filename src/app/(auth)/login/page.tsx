@@ -56,16 +56,16 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100">
-            Welcome Back
+            CustomerCare AI
           </h1>
           <p className="text-center text-gray-500 mt-2 mb-6">
-            Sign in to your account to continue
+            アカウントにログインしてください
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
+                メールアドレス
               </label>
               <input
                 type="email"
@@ -78,13 +78,13 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
+                パスワード
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder="パスワードを入力"
                 className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
@@ -97,13 +97,13 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                Remember me
+                ログイン状態を維持
               </label>
               <Link
                 href="/forgot-password"
                 className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
               >
-                Forgot password?
+                パスワードをお忘れですか?
               </Link>
             </div>
 
@@ -115,20 +115,20 @@ export default function LoginPage() {
                 className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span>
-                I agree to the{" "}
                 <Link
                   href="/terms"
                   className="text-emerald-600 hover:text-emerald-700"
                 >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
+                  利用規約
+                </Link>
+                {" と "}
                 <Link
                   href="/privacy"
                   className="text-emerald-600 hover:text-emerald-700"
                 >
-                  Privacy Policy
+                  プライバシーポリシー
                 </Link>
+                {" に同意します"}
               </span>
             </label>
 
@@ -143,32 +143,26 @@ export default function LoginPage() {
               disabled={submitting}
               className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
             >
-              {submitting ? "Signing in..." : "Sign In"}
+              {submitting ? "ログイン中..." : "ログイン"}
             </button>
 
             <p className="text-center text-sm text-gray-600">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Sign up here
-              </Link>
+              アカウントは管理者から発行されます
             </p>
           </form>
         </div>
 
         <div className="flex justify-center gap-6 mt-6 text-sm text-gray-500">
           <Link href="/privacy" className="hover:text-gray-700">
-            Privacy Policy
+            プライバシーポリシー
           </Link>
           <span>•</span>
           <Link href="/terms" className="hover:text-gray-700">
-            Terms of Service
+            利用規約
           </Link>
           <span>•</span>
           <Link href="/support" className="hover:text-gray-700">
-            Support
+            サポート
           </Link>
         </div>
       </div>

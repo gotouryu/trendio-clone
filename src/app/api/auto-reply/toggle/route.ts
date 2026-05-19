@@ -1,0 +1,47 @@
+/**
+ * POST /api/auto-reply/toggle — 自動応答モードのON/OFFを瞬時に切り替え
+ *
+ * Body: { enabled: boolean }
+ * Response: { enabled: boolean }
+ *
+ * 共P-01「無人受付」要件の最重要操作:1クリックで無人受付モードに切替可能。
+ */
+import { NextResponse, type NextRequest } from "next/server";
+import { requireUser } from "@/lib/supabase/requireUser";
+import { createSupabaseServer } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
+  const body = (await req.json()) as { enabled?: boolean };
+  if (typeof body.enabled !== "boolean") {
+    return NextResponse.json(
+      { error: "enabled (boolean) is required" },
+      { status: 400 },
+    );
+  }
+
+  const sb = await createSupabaseServer();
+  if (!sb) {
+    return NextResponse.json({ enabled: body.enabled, mock: true });
+  }
+
+  const { data, error } = await sb
+    .from("auto_reply_settings")
+    .upsert(
+      {
+        user_id: auth.userId,
+        enabled: body.enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    )
+    .select("enabled")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ enabled: data.enabled, mock: false });
+}

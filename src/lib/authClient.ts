@@ -8,6 +8,10 @@ export type Role = "customer" | "admin";
 
 export type Session = {
   email: string;
+  /**
+   * 会社名(=管理画面から発行された profiles.company_name)。
+   * 未設定の場合は空文字。サイドバーの表示判定で空文字は隠す。
+   */
   companyName: string;
   role: Role;
   loggedInAt: string;
@@ -51,7 +55,7 @@ export async function login(email: string, password: string): Promise<Session> {
 
   const session: Session = {
     email: user.email!,
-    companyName: profile?.company_name ?? "サンプル",
+    companyName: profile?.company_name ?? "",
     role: (profile?.role as Role) ?? "customer",
     loggedInAt: new Date().toISOString(),
   };

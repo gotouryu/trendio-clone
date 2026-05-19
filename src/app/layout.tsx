@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trendio Clone - SNS運用効率化プラットフォーム",
+  title: "CustomerCare AI | 顧客対応・販売支援プラットフォーム",
   description:
-    "Instagram・TikTokの分析、AIコンテンツ生成、トレンド発見を一元化",
+    "SNS上の顧客接点をAIで自動応答し、顧客カルテとして蓄積・分析する中小企業のための顧客対応・販売支援SaaS",
   manifest: "/manifest.json",
 };
 

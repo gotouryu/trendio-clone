@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+                メールアドレス
               </label>
               <input
                 type="email"
@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
+                パスワード
               </label>
               <input
                 type="password"
@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
               disabled={submitting}
               className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white font-medium py-3 rounded-lg transition-colors"
             >
-              {submitting ? "Signing in..." : "管理者ログイン"}
+              {submitting ? "ログイン中..." : "管理者ログイン"}
             </button>
           </form>
 

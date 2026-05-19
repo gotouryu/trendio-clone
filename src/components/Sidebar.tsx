@@ -6,8 +6,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   MessageCircle,
-  Flame,
-  Sparkles,
+  Users,
   Settings,
   LogOut,
   Menu,
@@ -20,20 +19,20 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
-  const [companyName, setCompanyName] = useState("サンプル");
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
+  // 申請審査対象の4機能のみサイドバーに表示する(=AI Content・Discover Trends は非表示)
   const navItems = [
     { href: "/dashboard", label: t("nav.dashboard"), Icon: LayoutDashboard },
     { href: "/comments", label: t("nav.comments"), Icon: MessageCircle },
-    { href: "/discover-trends", label: t("nav.trends"), Icon: Flame },
-    { href: "/ai-content", label: t("nav.aiContent"), Icon: Sparkles },
+    { href: "/customers", label: t("nav.customers"), Icon: Users },
     { href: "/settings", label: t("nav.settings"), Icon: Settings },
   ];
 
   useEffect(() => {
     const session = getSession();
-    if (session) setCompanyName(session.companyName);
+    if (session) setCompanyName(session.companyName ?? null);
   }, []);
 
   useEffect(() => {
@@ -60,9 +59,16 @@ export default function Sidebar() {
             />
           </svg>
         </div>
-        <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-          {companyName}
-        </span>
+        <div className="min-w-0">
+          <div className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm">
+            CustomerCare AI
+          </div>
+          {companyName && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {companyName}
+            </div>
+          )}
+        </div>
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-1" aria-label="主要ナビゲーション">

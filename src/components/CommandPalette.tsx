@@ -6,8 +6,7 @@ import {
   Search,
   LayoutDashboard,
   MessageCircle,
-  Flame,
-  Sparkles,
+  Users,
   Settings,
 } from "lucide-react";
 
@@ -20,9 +19,8 @@ type CmdItem = {
 
 const items: CmdItem[] = [
   { label: "ダッシュボード", path: "/dashboard", Icon: LayoutDashboard, hint: "Dashboard" },
-  { label: "コメント", path: "/comments", Icon: MessageCircle, hint: "Comments" },
-  { label: "トレンドを発見する", path: "/discover-trends", Icon: Flame, hint: "Trends" },
-  { label: "AIコンテンツ", path: "/ai-content", Icon: Sparkles, hint: "AI Content" },
+  { label: "コメント管理", path: "/comments", Icon: MessageCircle, hint: "Comments" },
+  { label: "顧客カルテ", path: "/customers", Icon: Users, hint: "Customers" },
   { label: "アカウント設定", path: "/settings", Icon: Settings, hint: "Settings" },
 ];
 

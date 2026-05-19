@@ -362,7 +362,7 @@ function AddCustomerModal({
               required
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="株式会社サンプル"
+              placeholder="株式会社○○"
               className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
             />
           </div>
