@@ -81,9 +81,9 @@ export const mockComments: CommentItem[] = [
   {
     id: "c1",
     postId: "p1",
-    postThumbnail: "https://placehold.co/100x100/fed7aa/9a3412?text=Post1",
+    postThumbnail: "/avatars/post-1.svg",
     author: "yamada_taro",
-    authorAvatar: "https://placehold.co/40x40/10b981/ffffff?text=Y",
+    authorAvatar: "/avatars/user-1.svg",
     text: "とても素敵な投稿ですね!参考になります🥰",
     timestamp: "2026-05-19T10:23:00+09:00",
     status: "unread",
@@ -92,9 +92,9 @@ export const mockComments: CommentItem[] = [
   {
     id: "c2",
     postId: "p2",
-    postThumbnail: "https://placehold.co/100x100/fb923c/ffffff?text=Post2",
+    postThumbnail: "/avatars/post-2.svg",
     author: "sakura_jp",
-    authorAvatar: "https://placehold.co/40x40/f97316/ffffff?text=S",
+    authorAvatar: "/avatars/user-2.svg",
     text: "次の入荷はいつ頃ですか?",
     timestamp: "2026-05-19T09:11:00+09:00",
     status: "unread",
@@ -103,9 +103,9 @@ export const mockComments: CommentItem[] = [
   {
     id: "c3",
     postId: "p3",
-    postThumbnail: "https://placehold.co/100x100/f87171/ffffff?text=Post3",
+    postThumbnail: "/avatars/post-3.svg",
     author: "marketing_pro",
-    authorAvatar: "https://placehold.co/40x40/0ea5e9/ffffff?text=M",
+    authorAvatar: "/avatars/user-3.svg",
     text: "この商品の使い方を詳しく教えてください!",
     timestamp: "2026-05-18T18:45:00+09:00",
     status: "replied",
@@ -122,7 +122,7 @@ export const mockTrends: TrendItem[] = [
     views: 1240000,
     growth: 87,
     hashtags: ["おうちカフェ", "コーヒー時間", "リール"],
-    thumbnail: "https://placehold.co/300x400/fed7aa/9a3412?text=おうちカフェ",
+    thumbnail: "/trends/trend-1.svg",
   },
   {
     id: "t2",
@@ -132,7 +132,7 @@ export const mockTrends: TrendItem[] = [
     views: 2800000,
     growth: 134,
     hashtags: ["時短レシピ", "簡単料理", "TikTokレシピ"],
-    thumbnail: "https://placehold.co/300x400/fb923c/ffffff?text=時短レシピ",
+    thumbnail: "/trends/trend-2.svg",
   },
   {
     id: "t3",
@@ -142,7 +142,7 @@ export const mockTrends: TrendItem[] = [
     views: 980000,
     growth: 62,
     hashtags: ["スイーツ巡り", "新作スイーツ", "カフェ巡り"],
-    thumbnail: "https://placehold.co/300x400/f87171/ffffff?text=スイーツ",
+    thumbnail: "/trends/trend-3.svg",
   },
 ];
 

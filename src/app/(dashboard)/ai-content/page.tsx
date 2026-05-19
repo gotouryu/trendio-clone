@@ -1,30 +1,91 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, Save, Trash2, Copy, Check } from "lucide-react";
-import {
-  industryOptions,
-  goalOptions,
-  mockContentIdeas,
-} from "@/lib/mockData";
+import { useState, useRef, useEffect } from "react";
+import { Sparkles, Save, Trash2, Copy, Check, Mic, MicOff, History, RotateCcw } from "lucide-react";
+import { industryOptions, goalOptions, mockContentIdeas } from "@/lib/mockData";
 import type { ContentIdea } from "@/lib/types";
+import { useToast } from "@/components/providers/ToasterProvider";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import { Tooltip } from "@/components/ui/Tooltip";
+
+type HistoryItem = {
+  id: string;
+  timestamp: string;
+  industry: string;
+  goal: string;
+  extra: string;
+};
+
+type ISpeechRecognitionResult = ArrayLike<{ transcript: string }> & {
+  isFinal: boolean;
+};
+type ISpeechRecognitionEvent = { results: ArrayLike<ISpeechRecognitionResult> };
+type ISpeechRecognition = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: ISpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => ISpeechRecognition;
+
+function getSpeechRecognition(): SpeechRecognitionConstructor | undefined {
+  if (typeof window === "undefined") return undefined;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+}
 
 export default function AIContentPage() {
-  const [tab, setTab] = useState<"new" | "saved">("new");
+  const { toast } = useToast();
+  const [tab, setTab] = useState<"new" | "saved" | "history">("new");
   const [industry, setIndustry] = useState("food-beverage");
   const [goal, setGoal] = useState("brand-awareness");
   const [extra, setExtra] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState<ContentIdea[]>([]);
-  const [saved, setSaved] = useState<ContentIdea[]>(mockContentIdeas);
+  const [saved, setSaved] = useLocalStorage<ContentIdea[]>(
+    "trendio-saved-content",
+    mockContentIdeas,
+  );
+  const [history, setHistory] = useLocalStorage<HistoryItem[]>(
+    "trendio-generation-history",
+    [],
+  );
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [usingMock, setUsingMock] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recRef = useRef<ISpeechRecognition | null>(null);
+  const speechSupported = !!getSpeechRecognition();
+
+  useEffect(() => {
+    return () => {
+      recRef.current?.stop();
+    };
+  }, []);
 
   async function generate() {
     setGenerating(true);
     setGenerationError(null);
+    // log to history first
+    setHistory((prev) =>
+      [
+        {
+          id: `h-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          industry,
+          goal,
+          extra,
+        },
+        ...prev,
+      ].slice(0, 50),
+    );
     try {
       const res = await fetch("/api/ai-content", {
         method: "POST",
@@ -40,113 +101,166 @@ export default function AIContentPage() {
       setGenerated(data.ideas);
       setUsingMock(!!data.mock);
     } catch (e) {
-      setGenerationError(
-        e instanceof Error ? e.message : "予期しないエラーが発生しました",
-      );
+      setGenerationError(e instanceof Error ? e.message : "予期しないエラー");
     } finally {
       setGenerating(false);
     }
   }
 
   function saveItem(idea: ContentIdea) {
-    if (saved.find((s) => s.id === idea.id)) return;
-    setSaved([{ ...idea, savedAt: new Date().toISOString().slice(0, 10) }, ...saved]);
+    if (saved.find((s) => s.id === idea.id)) {
+      toast("既に保存されています", "info");
+      return;
+    }
+    setSaved((prev) => [
+      { ...idea, savedAt: new Date().toISOString().slice(0, 10) },
+      ...prev,
+    ]);
+    toast("保存しました", "success");
   }
 
   function deleteItem(id: string) {
-    setSaved(saved.filter((s) => s.id !== id));
+    setSaved((prev) => prev.filter((s) => s.id !== id));
+    toast("削除しました", "info");
   }
 
   function copy(idea: ContentIdea) {
     const text = `${idea.title}\n\nフック: ${idea.hook}\n\n台本:\n${idea.script}\n\nハッシュタグ: ${idea.hashtags.map((h) => `#${h}`).join(" ")}`;
     navigator.clipboard.writeText(text);
     setCopiedId(idea.id);
+    toast("コピーしました", "success");
     setTimeout(() => setCopiedId(null), 1500);
   }
 
+  function rerun(item: HistoryItem) {
+    setIndustry(item.industry);
+    setGoal(item.goal);
+    setExtra(item.extra);
+    setTab("new");
+    toast("フォームに再入力しました", "info");
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    toast("履歴を削除しました", "info");
+  }
+
+  function startListening() {
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) return;
+    const rec = new Ctor();
+    rec.lang = "ja-JP";
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      const results = e.results;
+      let final = "";
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r.isFinal) final += r[0].transcript;
+      }
+      if (final) setExtra((prev) => (prev ? prev + " " + final : final));
+    };
+    rec.onend = () => {
+      setListening(false);
+      toast("音声入力完了", "success");
+    };
+    rec.onerror = () => {
+      setListening(false);
+    };
+    rec.start();
+    recRef.current = rec;
+    setListening(true);
+    toast("録音中...", "info");
+  }
+
+  function stopListening() {
+    recRef.current?.stop();
+    setListening(false);
+  }
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">AI Content Planning</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          AI-powered content ideas and script generation
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">AI Content Planning</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">AI-powered content ideas and script generation</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setTab("new")}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "new"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            New Generation
-          </button>
-          <button
-            onClick={() => setTab("saved")}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "saved"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Saved ({saved.length})
-          </button>
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
+        <div className="flex gap-6 min-w-max">
+          <TabBtn active={tab === "new"} onClick={() => setTab("new")}>New Generation</TabBtn>
+          <TabBtn active={tab === "saved"} onClick={() => setTab("saved")}>Saved ({saved.length})</TabBtn>
+          <TabBtn active={tab === "history"} onClick={() => setTab("history")}>履歴 ({history.length})</TabBtn>
         </div>
       </div>
 
       {tab === "new" && (
         <>
-          <div className="bg-white border border-gray-100 rounded-xl p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-6 mb-6">
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="ai-industry">
                 Select Industry
               </label>
               <select
+                id="ai-industry"
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm"
               >
                 {industryOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
 
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="ai-goal">
                 Marketing Goal
               </label>
               <select
+                id="ai-goal"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm"
+                className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm"
               >
                 {goalOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
 
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="ai-extra">
                 Additional Requests (Optional)
               </label>
-              <textarea
-                value={extra}
-                onChange={(e) => setExtra(e.target.value)}
-                placeholder="例:ターゲットは20代女性、カジュアルなトーン、商品特徴を強調"
-                rows={4}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              <div className="relative">
+                <textarea
+                  id="ai-extra"
+                  value={extra}
+                  onChange={(e) => setExtra(e.target.value)}
+                  placeholder="例:ターゲットは20代女性、カジュアルなトーン、商品特徴を強調"
+                  rows={4}
+                  className="w-full px-4 py-2.5 pr-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <Tooltip label={speechSupported ? (listening ? "停止" : "音声入力") : "音声入力はChromeで利用できます"}>
+                  <button
+                    type="button"
+                    onClick={listening ? stopListening : startListening}
+                    disabled={!speechSupported}
+                    className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                      !speechSupported
+                        ? "bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                        : listening
+                          ? "bg-red-500 text-white animate-pulse"
+                          : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800"
+                    }`}
+                    aria-label={listening ? "音声入力を停止" : "音声入力を開始"}
+                  >
+                    {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                </Tooltip>
+              </div>
             </div>
 
             <button
@@ -160,19 +274,19 @@ export default function AIContentPage() {
           </div>
 
           {generationError && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-lg text-sm">
               {generationError}
             </div>
           )}
 
           {generated.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   生成された案 ({generated.length})
                 </h2>
                 {usingMock && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                  <span className="text-xs px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                     Mock(=Claude APIキー未設定。本番では実AI生成)
                   </span>
                 )}
@@ -195,9 +309,9 @@ export default function AIContentPage() {
       {tab === "saved" && (
         <div className="space-y-4">
           {saved.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-xl p-12 text-center">
-              <Save className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">保存されたコンテンツはまだありません</p>
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
+              <Save className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">保存されたコンテンツはまだありません</p>
             </div>
           ) : (
             saved.map((s) => (
@@ -213,7 +327,80 @@ export default function AIContentPage() {
           )}
         </div>
       )}
+
+      {tab === "history" && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              生成履歴
+            </h2>
+            {history.length > 0 && (
+              <button
+                onClick={clearHistory}
+                className="text-xs text-red-500 hover:text-red-600"
+              >
+                履歴をクリア
+              </button>
+            )}
+          </div>
+          {history.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
+              <History className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">履歴はまだありません</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {history.map((h) => {
+                const indLabel = industryOptions.find((o) => o.value === h.industry)?.label ?? h.industry;
+                const goalLabel = goalOptions.find((o) => o.value === h.goal)?.label ?? h.goal;
+                return (
+                  <div
+                    key={h.id}
+                    className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(h.timestamp).toLocaleString("ja-JP")}
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                        <span className="font-medium">{indLabel}</span> × {goalLabel}
+                      </div>
+                      {h.extra && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                          {h.extra}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => rerun(h)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs hover:bg-emerald-100 dark:hover:bg-emerald-800"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      再実行
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+        active
+          ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+          : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -235,45 +422,41 @@ function ContentCard({
   isSavedView?: boolean;
 }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5">
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
       <div className="flex items-start justify-between mb-3 gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 idea.platform === "instagram"
-                  ? "bg-orange-50 text-orange-700"
-                  : "bg-gray-900 text-white"
+                  ? "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                  : "bg-gray-900 dark:bg-gray-700 text-white"
               }`}
             >
               {idea.platform === "instagram" ? "Instagram" : "TikTok"}
             </span>
             {idea.savedAt && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 保存日:{idea.savedAt}
               </span>
             )}
           </div>
-          <h3 className="font-semibold text-gray-900">{idea.title}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{idea.title}</h3>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onCopy}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-            title="コピー"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+            aria-label="コピー"
           >
-            {copied ? (
-              <Check className="w-4 h-4 text-emerald-600" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
+            {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
           </button>
           {!isSavedView && onSave && (
             <button
               onClick={onSave}
               disabled={saved}
-              className={`p-2 rounded-lg ${saved ? "text-emerald-600 bg-emerald-50" : "hover:bg-gray-100 text-gray-600"}`}
-              title="保存"
+              className={`p-2 rounded-lg ${saved ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"}`}
+              aria-label="保存"
             >
               <Save className="w-4 h-4" />
             </button>
@@ -281,8 +464,8 @@ function ContentCard({
           {isSavedView && onDelete && (
             <button
               onClick={onDelete}
-              className="p-2 rounded-lg hover:bg-red-50 text-red-500"
-              title="削除"
+              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500"
+              aria-label="削除"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -292,12 +475,12 @@ function ContentCard({
 
       <div className="space-y-3 text-sm">
         <div>
-          <div className="text-xs font-medium text-gray-500 mb-1">フック</div>
-          <div className="text-gray-800">{idea.hook}</div>
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">フック</div>
+          <div className="text-gray-800 dark:text-gray-200">{idea.hook}</div>
         </div>
         <div>
-          <div className="text-xs font-medium text-gray-500 mb-1">台本</div>
-          <pre className="text-gray-800 whitespace-pre-wrap font-sans bg-gray-50 p-3 rounded-lg">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">台本</div>
+          <pre className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-sans bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
             {idea.script}
           </pre>
         </div>
@@ -305,7 +488,7 @@ function ContentCard({
           {idea.hashtags.map((h) => (
             <span
               key={h}
-              className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full"
+              className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full"
             >
               #{h}
             </span>
