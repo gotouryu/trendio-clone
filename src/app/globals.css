@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #111827;
+  --brand: #10b981;
+  --brand-light: #34d399;
+  --brand-bg: #f0fdf4;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --muted: #6b7280;
+  --accent-orange: #f97316;
+  --accent-orange-light: #fed7aa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-brand-bg: var(--brand-bg);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-orange-light: var(--accent-orange-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+/* Auth screen gradient background */
+.auth-bg {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
+}
+
+/* Instagram icon gradient */
+.ig-icon-bg {
+  background: linear-gradient(135deg, #fed7aa 0%, #fb923c 50%, #f87171 100%);
+}
+
+/* TikTok icon */
+.tt-icon-bg {
+  background: #000000;
+}
+
+/* Card shadow */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.sidebar-item-active {
+  background: #0f172a;
+  color: white;
+}
+
+.sidebar-item {
+  color: #374151;
+}
+
+.sidebar-item:hover {
+  background: #f3f4f6;
 }

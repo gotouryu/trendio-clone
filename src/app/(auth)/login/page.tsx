@@ -1,0 +1,185 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { login } from "@/lib/authClient";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("メールアドレスとパスワードを入力してください");
+      return;
+    }
+    if (!agreed) {
+      setError("利用規約とプライバシーポリシーに同意してください");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ログインに失敗しました");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="auth-bg min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="flex justify-center mb-6">
+            <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="w-8 h-8 text-emerald-600"
+              >
+                <path
+                  d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"
+                  fill="currentColor"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-center text-gray-900">
+            Welcome Back
+          </h1>
+          <p className="text-center text-gray-500 mt-2 mb-6">
+            Sign in to your account to continue
+          </p>
+
+          <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-gray-700">
+            <div className="font-semibold text-emerald-700 mb-1">
+              デモアカウント
+            </div>
+            <div>Email: <code className="bg-white px-1.5 py-0.5 rounded">demo@trendio.example</code></div>
+            <div>Password: <code className="bg-white px-1.5 py-0.5 rounded">Demo2026!</code></div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                Remember me
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                I agree to the{" "}
+                <Link
+                  href="/terms"
+                  className="text-emerald-600 hover:text-emerald-700"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-emerald-600 hover:text-emerald-700"
+                >
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+
+            {error && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
+            >
+              {submitting ? "Signing in..." : "Sign In"}
+            </button>
+
+            <p className="text-center text-sm text-gray-600">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/signup"
+                className="text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                Sign up here
+              </Link>
+            </p>
+          </form>
+        </div>
+
+        <div className="flex justify-center gap-6 mt-6 text-sm text-gray-500">
+          <Link href="/privacy" className="hover:text-gray-700">
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:text-gray-700">
+            Terms of Service
+          </Link>
+          <span>•</span>
+          <Link href="/support" className="hover:text-gray-700">
+            Support
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
