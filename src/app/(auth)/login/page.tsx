@@ -28,8 +28,8 @@ export default function LoginPage() {
     }
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.push("/dashboard");
+      const session = await login(email, password);
+      router.push(session.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "ログインに失敗しました");
     } finally {
@@ -61,14 +61,6 @@ export default function LoginPage() {
           <p className="text-center text-gray-500 mt-2 mb-6">
             Sign in to your account to continue
           </p>
-
-          <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-gray-700">
-            <div className="font-semibold text-emerald-700 mb-1">
-              デモアカウント
-            </div>
-            <div>Email: <code className="bg-white px-1.5 py-0.5 rounded">demo@trendio.example</code></div>
-            <div>Password: <code className="bg-white px-1.5 py-0.5 rounded">Demo2026!</code></div>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

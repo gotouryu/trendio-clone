@@ -14,25 +14,39 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   company_name text not null default 'サンプル',
   language text not null default 'ja',
+  role text not null default 'customer' check (role in ('customer','admin')),
+  status text not null default 'active' check (status in ('active','suspended')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;
 
-create policy "profiles: own row read"
-  on public.profiles for select using (auth.uid() = id);
+-- Customer can read/update only their own row; admin can read all
+create policy "profiles: own row or admin read"
+  on public.profiles for select using (
+    auth.uid() = id
+    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
 create policy "profiles: own row update"
   on public.profiles for update using (auth.uid() = id);
+create policy "profiles: admin can update any"
+  on public.profiles for update using (
+    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
 create policy "profiles: own row insert"
   on public.profiles for insert with check (auth.uid() = id);
 
--- Auto-create profile on signup
+-- Auto-create profile on signup (default role = customer)
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, company_name)
-  values (new.id, coalesce(new.raw_user_meta_data->>'company_name', 'サンプル'));
+  insert into public.profiles (id, company_name, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'company_name', 'サンプル'),
+    coalesce(new.raw_user_meta_data->>'role', 'customer')
+  );
   return new;
 end;
 $$ language plpgsql security definer;
@@ -177,6 +191,46 @@ create index if not exists trend_cache_lookup_idx
   on public.trend_cache (industry, platform, expires_at desc);
 
 -- trend_cache is shared across users; no RLS (read-only via service role from API routes)
+
+-- ============================================================
+-- 8. login_events — login history for usage tracking
+-- ============================================================
+create table if not exists public.login_events (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  logged_in_at timestamptz not null default now(),
+  ip text,
+  user_agent text
+);
+
+create index if not exists login_events_user_time_idx
+  on public.login_events (user_id, logged_in_at desc);
+
+alter table public.login_events enable row level security;
+
+create policy "login_events: insert own"
+  on public.login_events for insert with check (auth.uid() = user_id);
+create policy "login_events: select own or admin"
+  on public.login_events for select using (
+    auth.uid() = user_id
+    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+  );
+
+-- Aggregate view for admin dashboard
+create or replace view public.customer_usage as
+select
+  p.id,
+  p.company_name,
+  p.role,
+  p.status,
+  p.created_at as registered_at,
+  (select max(logged_in_at) from public.login_events e where e.user_id = p.id) as last_login_at,
+  (select count(*) from public.login_events e
+    where e.user_id = p.id
+    and e.logged_in_at >= now() - interval '30 days') as logins_30d,
+  greatest(0, extract(day from now() - p.created_at)::int) as days_since_register
+from public.profiles p
+where p.role = 'customer';
 
 -- ============================================================
 -- updated_at trigger helper

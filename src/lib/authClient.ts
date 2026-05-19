@@ -4,77 +4,55 @@ import { createSupabaseBrowser, isSupabaseReady } from "./supabase/client";
 
 const SESSION_KEY = "trendio-clone-session";
 
+export type Role = "customer" | "admin";
+
 export type Session = {
   email: string;
   companyName: string;
+  role: Role;
   loggedInAt: string;
 };
 
-// Demo credentials — accepted when Supabase is not configured (=public demo).
-// Once Supabase is wired up, real accounts created via signup are used instead.
-const DEMO_ACCOUNTS: { email: string; password: string; company: string }[] = [
-  { email: "demo@trendio.example", password: "Demo2026!", company: "サンプル" },
-];
-
+/**
+ * Sign in with email/password.
+ * Records a login_events row and returns the session with role.
+ * Throws on invalid credentials or suspended account.
+ */
 export async function login(email: string, password: string): Promise<Session> {
-  if (isSupabaseReady()) {
-    const sb = createSupabaseBrowser();
-    const { data, error } = await sb.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw new Error(error.message);
-    const meta = (data.user?.user_metadata ?? {}) as { company_name?: string };
-    const session: Session = {
-      email: data.user!.email!,
-      companyName: meta.company_name ?? "サンプル",
-      loggedInAt: new Date().toISOString(),
-    };
-    persist(session);
-    return session;
+  if (!isSupabaseReady()) {
+    throw new Error("認証サーバーに接続できません(=Supabase未設定)");
   }
-  // Demo mode: only accept whitelisted credentials
-  const matched = DEMO_ACCOUNTS.find(
-    (a) => a.email === email && a.password === password,
-  );
-  if (!matched) {
-    throw new Error(
-      "メールアドレスまたはパスワードが正しくありません(=デモ用ID/PWを入力してください)",
-    );
-  }
-  const session: Session = {
-    email: matched.email,
-    companyName: matched.company,
-    loggedInAt: new Date().toISOString(),
-  };
-  persist(session);
-  return session;
-}
+  const sb = createSupabaseBrowser();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw new Error("メールアドレスまたはパスワードが正しくありません");
+  const user = data.user!;
 
-export async function signup(
-  email: string,
-  password: string,
-  companyName: string,
-): Promise<Session> {
-  if (isSupabaseReady()) {
-    const sb = createSupabaseBrowser();
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { data: { company_name: companyName } },
-    });
-    if (error) throw new Error(error.message);
-    const session: Session = {
-      email: data.user?.email ?? email,
-      companyName,
-      loggedInAt: new Date().toISOString(),
-    };
-    persist(session);
-    return session;
+  // Fetch profile (=role, company_name, status)
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("company_name, role, status")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.status === "suspended") {
+    await sb.auth.signOut();
+    throw new Error("このアカウントは停止されています。管理者にお問い合わせください");
   }
+
+  // Record login event (best-effort, ignore failure)
+  try {
+    await sb.from("login_events").insert({
+      user_id: user.id,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    });
+  } catch {
+    // ignore
+  }
+
   const session: Session = {
-    email,
-    companyName: companyName || "サンプル",
+    email: user.email!,
+    companyName: profile?.company_name ?? "サンプル",
+    role: (profile?.role as Role) ?? "customer",
     loggedInAt: new Date().toISOString(),
   };
   persist(session);
@@ -100,6 +78,10 @@ export function getSession(): Session | null {
   } catch {
     return null;
   }
+}
+
+export function isAdmin(): boolean {
+  return getSession()?.role === "admin";
 }
 
 function persist(s: Session) {
