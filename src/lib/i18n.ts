@@ -377,6 +377,23 @@ const dict: Record<Locale, Record<string, string>> = {
       "認証サーバーに接続できません。サポートまでご連絡ください。",
     "forgot.backToLogin": "ログインに戻る",
 
+    // Reset Password ページ(=メールリンク先)
+    "reset.title": "新しいパスワードを設定",
+    "reset.subtitle": "新しいパスワードを入力してください",
+    "reset.password": "新しいパスワード",
+    "reset.confirm": "パスワード確認",
+    "reset.submit": "パスワードを更新",
+    "reset.submitting": "更新中...",
+    "reset.success": "パスワードを更新しました。ログイン画面へお進みください。",
+    "reset.toLogin": "ログイン画面へ",
+    "reset.err.mismatch": "パスワードが一致しません",
+    "reset.err.tooShort": "8文字以上で入力してください",
+    "reset.err.notConfigured":
+      "認証サーバーに接続できません。サポートまでご連絡ください。",
+    "reset.err.invalidLink":
+      "リンクの有効期限が切れているか、無効です。再度パスワード再発行を依頼してください。",
+    "reset.err.failed": "更新に失敗しました",
+
     // Portal-Helix(=管理者ログイン)
     "adminLogin.title": "Karteia 管理者ポータル",
     "adminLogin.subtitle": "管理者専用です。一般のお客様は通常ログインをご利用ください。",
@@ -809,6 +826,24 @@ const dict: Record<Locale, Record<string, string>> = {
     "forgot.err.notConfigured":
       "Authentication server is not reachable. Please contact support.",
     "forgot.backToLogin": "Back to login",
+
+    // Reset Password (=email link target)
+    "reset.title": "Set a new password",
+    "reset.subtitle": "Enter your new password",
+    "reset.password": "New password",
+    "reset.confirm": "Confirm password",
+    "reset.submit": "Update password",
+    "reset.submitting": "Updating...",
+    "reset.success":
+      "Password updated. Please sign in with your new password.",
+    "reset.toLogin": "Go to sign-in",
+    "reset.err.mismatch": "Passwords do not match",
+    "reset.err.tooShort": "Password must be at least 8 characters",
+    "reset.err.notConfigured":
+      "Authentication server is not reachable. Please contact support.",
+    "reset.err.invalidLink":
+      "Reset link has expired or is invalid. Please request a new password reset.",
+    "reset.err.failed": "Update failed",
 
     // Admin Portal Login
     "adminLogin.title": "Karteia Admin Portal",

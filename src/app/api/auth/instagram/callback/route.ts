@@ -83,6 +83,10 @@ export async function GET(req: NextRequest) {
   const sb = await createSupabaseServer();
   if (!sb) return redirectSettings(req, { error: "supabase_not_configured" });
 
+  // Phase 4 修正(H4):Meta long-lived token は 60日有効
+  // expires_at を保存して期限切れ追跡可能化(=旧:expires_at 未保存)
+  const expiresAt = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString();
+
   // sns_accounts に upsert(=既存接続があれば access_token 更新、なければ新規作成)
   const { error: upsertErr } = await sb
     .from("sns_accounts")
@@ -93,6 +97,7 @@ export async function GET(req: NextRequest) {
         external_account_id: igInfo.igUserId,
         access_token: userAccessToken,
         display_name: igInfo.pageId,
+        expires_at: expiresAt,
         last_synced_at: new Date().toISOString(),
       },
       { onConflict: "user_id,platform" },
