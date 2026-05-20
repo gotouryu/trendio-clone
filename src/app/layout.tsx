@@ -17,10 +17,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Phase 4 修正:metadata は静的なので英語版に統一。
+// (=Meta/TikTok レビュアが英語UIで動作確認時にタブタイトルが日本語混在しないように)
 export const metadata: Metadata = {
-  title: "Karteia | 顧客対応・販売支援プラットフォーム",
+  title: "Karteia | Customer Engagement & Sales Support Platform",
   description:
-    "SNS上の顧客接点をAIで自動応答し、顧客カルテとして蓄積・分析する中小企業のための顧客対応・販売支援SaaS",
+    "AI-powered customer engagement platform for small-to-medium businesses on Instagram and TikTok. Auto-reply, customer records, and audience insights in one place.",
   manifest: "/manifest.json",
 };
 
