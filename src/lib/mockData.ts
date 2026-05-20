@@ -244,6 +244,7 @@ export const mockComments: CommentItem[] = [
     author: "daisuke_works",
     authorAvatar: "/avatars/user-3.svg",
     text: "同業者です。色々勉強になります。ぜひお話ししたいです🙇",
+    textEn: "Fellow business owner — very educational posts. Would love to chat 🙇",
     timestamp: "2026-05-17T14:03:00+09:00",
     status: "replied",
     sentiment: "positive",

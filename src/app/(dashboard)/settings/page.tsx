@@ -629,11 +629,11 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2 mb-2">
                 <ShieldAlert className="w-4 h-4 text-red-500" />
                 <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  NGワード
+                  {t("settings.ng.title")}
                 </h3>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                これらの語が含まれるコメントには自動応答しません(=機械的応答を避けるべき内容、Human-in-the-Loop)
+                {t("settings.ng.howto")}
               </p>
               <NgKeywordEditor
                 keywords={arSettings.ngKeywords}
