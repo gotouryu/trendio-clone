@@ -165,6 +165,16 @@ const dict: Record<Locale, Record<string, string>> = {
     "customers.totalInteractions": "累計接点",
     "customers.aiAnalysis": "AI 顧客好み分析",
     "customers.empty": "該当するお客様はいません",
+    "customers.filterStatus": "対応ステータス",
+    "customers.filterTag": "タグ",
+    "customers.count": "{n} 名のお客様",
+    "customers.loading": "(読み込み中...)",
+    "customers.tag.VIP": "VIP",
+    "customers.tag.既存顧客": "既存顧客",
+    "customers.tag.問い合わせ多": "問い合わせ多",
+    "customers.tag.新規": "新規",
+    "customers.tag.リピーター": "リピーター",
+    "customers.tag.クレーム経験": "クレーム経験",
 
     // 顧客詳細
     "customerDetail.back": "顧客一覧に戻る",
@@ -365,6 +375,16 @@ const dict: Record<Locale, Record<string, string>> = {
     "customers.totalInteractions": "Total interactions",
     "customers.aiAnalysis": "AI Customer Preference Analysis",
     "customers.empty": "No matching customers",
+    "customers.filterStatus": "Status",
+    "customers.filterTag": "Tag",
+    "customers.count": "{n} customers",
+    "customers.loading": "(loading...)",
+    "customers.tag.VIP": "VIP",
+    "customers.tag.既存顧客": "Existing",
+    "customers.tag.問い合わせ多": "Frequent Inquiry",
+    "customers.tag.新規": "New",
+    "customers.tag.リピーター": "Repeat",
+    "customers.tag.クレーム経験": "Complaint History",
 
     // Customer Detail
     "customerDetail.back": "Back to customers",

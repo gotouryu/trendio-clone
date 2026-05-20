@@ -19,13 +19,13 @@ import KarteiaProcessBar, {
 import { getSession } from "@/lib/authClient";
 import { useI18n } from "@/lib/i18n";
 
-const statusOptions: { value: CustomerStatus | "all"; label: string; cls: string }[] = [
-  { value: "all", label: "すべて", cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" },
-  { value: "new", label: "新規", cls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
-  { value: "active", label: "対応中", cls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
-  { value: "vip", label: "VIP", cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
-  { value: "follow_up", label: "要フォロー", cls: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" },
-  { value: "closed", label: "対応済", cls: "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" },
+const statusOptions: { value: CustomerStatus | "all"; labelKey: string; cls: string }[] = [
+  { value: "all", labelKey: "customers.status.all", cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" },
+  { value: "new", labelKey: "customers.status.new", cls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
+  { value: "active", labelKey: "customers.status.active", cls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
+  { value: "vip", labelKey: "customers.status.vip", cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
+  { value: "follow_up", labelKey: "customers.status.follow_up", cls: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" },
+  { value: "closed", labelKey: "customers.status.closed", cls: "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" },
 ];
 
 const allTags: CustomerTag[] = [
@@ -117,22 +117,22 @@ export default function CustomersPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <StatCard
           icon={<Users className="w-4 h-4 text-orange-500" />}
-          label="登録顧客"
+          label={t("customers.stats.total")}
           value={stats.total}
         />
         <StatCard
           icon={<TrendingUp className="w-4 h-4 text-blue-500" />}
-          label="新規(対応待ち)"
+          label={t("customers.stats.new")}
           value={stats.newCount}
         />
         <StatCard
           icon={<TagIcon className="w-4 h-4 text-amber-500" />}
-          label="VIP顧客"
+          label={t("customers.stats.vip")}
           value={stats.vipCount}
         />
         <StatCard
           icon={<Filter className="w-4 h-4 text-orange-500" />}
-          label="要フォロー"
+          label={t("customers.stats.followUp")}
           value={stats.followUpCount}
         />
       </div>
@@ -144,7 +144,7 @@ export default function CustomersPage() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ハンドル名・表示名で検索..."
+          placeholder={t("customers.search")}
           className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
       </div>
@@ -152,7 +152,7 @@ export default function CustomersPage() {
       {/* Status Filter */}
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 mb-3 flex items-center gap-2 overflow-x-auto">
         <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-1">
-          対応ステータス
+          {t("customers.filterStatus")}
         </span>
         {statusOptions.map((o) => (
           <button
@@ -164,7 +164,7 @@ export default function CustomersPage() {
                 : `${o.cls} hover:opacity-80`
             }`}
           >
-            {o.label}
+            {t(o.labelKey)}
           </button>
         ))}
       </div>
@@ -172,7 +172,7 @@ export default function CustomersPage() {
       {/* Tag Filter */}
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 mb-4 flex items-center gap-2 overflow-x-auto">
         <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-1">
-          タグ
+          {t("customers.filterTag")}
         </span>
         <button
           onClick={() => setTagFilter("all")}
@@ -182,26 +182,26 @@ export default function CustomersPage() {
               : "bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
           }`}
         >
-          すべて
+          {t("customers.status.all")}
         </button>
-        {allTags.map((t) => (
+        {allTags.map((tag) => (
           <button
-            key={t}
-            onClick={() => setTagFilter(t)}
+            key={tag}
+            onClick={() => setTagFilter(tag)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
-              tagFilter === t
+              tagFilter === tag
                 ? "bg-emerald-500 text-white"
                 : "bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
             }`}
           >
-            {t}
+            {t(`customers.tag.${tag}`)}
           </button>
         ))}
       </div>
 
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        {filtered.length} 件の顧客
-        {loading && " (読み込み中...)"}
+        {t("customers.count", { n: filtered.length })}
+        {loading && " " + t("customers.loading")}
       </p>
 
       {/* Customer List */}
@@ -210,7 +210,7 @@ export default function CustomersPage() {
           <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
             <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="text-gray-500 dark:text-gray-400">
-              該当する顧客はいません
+              {t("customers.empty")}
             </p>
           </div>
         ) : (
@@ -248,6 +248,7 @@ function StatCard({
 }
 
 function CustomerRow({ customer }: { customer: Customer }) {
+  const { t, locale } = useI18n();
   const statusOption = statusOptions.find((o) => o.value === customer.status);
   return (
     <Link
@@ -272,7 +273,7 @@ function CustomerRow({ customer }: { customer: Customer }) {
               <span
                 className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusOption.cls}`}
               >
-                {statusOption.label}
+                {t(statusOption.labelKey)}
               </span>
             )}
             {customer.tags.slice(0, 3).map((tag) => (
@@ -280,20 +281,21 @@ function CustomerRow({ customer }: { customer: Customer }) {
                 key={tag}
                 className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
               >
-                {tag}
+                {t(`customers.tag.${tag}`)}
               </span>
             ))}
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
             <span>
-              最終接点:
-              {new Date(customer.lastContactAt).toLocaleString("ja-JP", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-              })}
+              {t("customers.lastContact")}:{" "}
+              {new Date(customer.lastContactAt).toLocaleString(
+                locale === "en" ? "en-US" : "ja-JP",
+                { year: "numeric", month: "2-digit", day: "2-digit" },
+              )}
             </span>
-            <span>累計 {customer.totalInteractions} 件の接点</span>
+            <span>
+              {t("customers.totalInteractions")}: {customer.totalInteractions}
+            </span>
             {customer.region && <span>{customer.region}</span>}
           </div>
         </div>

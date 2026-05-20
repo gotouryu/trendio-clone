@@ -79,9 +79,9 @@ function ChartSkeleton({ h }: { h: number }) {
 }
 
 const periodOptions = [
-  { value: "7", label: "過去7日間" },
-  { value: "30", label: "過去30日間" },
-  { value: "90", label: "過去90日間" },
+  { value: "7", labelKey: "dashboard.period.7" },
+  { value: "30", labelKey: "dashboard.period.30" },
+  { value: "90", labelKey: "dashboard.period.90" },
 ];
 
 type WidgetKey =
@@ -111,7 +111,7 @@ export default function DashboardPage() {
     DEFAULT_ORDER,
   );
   const dragKey = useRef<WidgetKey | null>(null);
-  const [displayName, setDisplayName] = useState("お客様");
+  const [displayName, setDisplayName] = useState("");
   useEffect(() => {
     const s = getSession();
     if (s?.displayName) setDisplayName(s.displayName);
@@ -134,7 +134,7 @@ export default function DashboardPage() {
     const first = filteredFollowerTrend[0].followers;
     const last = filteredFollowerTrend[filteredFollowerTrend.length - 1].followers;
     const diff = last - first;
-    if (first === 0 && last === 0) return { label: "データなし", isUp: false };
+    if (first === 0 && last === 0) return { label: t("common.noData"), isUp: false };
     if (first === 0) return { label: `新規 +${last}人`, isUp: true };
     const pct = (diff / first) * 100;
     const sign = diff >= 0 ? "+" : "";
@@ -186,7 +186,7 @@ export default function DashboardPage() {
     doc.setTextColor(120);
     doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`, 14, 26);
     doc.text(
-      `Period: ${periodOptions.find((o) => o.value === period)?.label}`,
+      `Period: ${t(periodOptions.find((o) => o.value === period)?.labelKey ?? "dashboard.period.30")}`,
       14,
       32,
     );
@@ -271,8 +271,8 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="フォロワー推移"
-            sub={`過去${period === "7" ? "7日間" : "12週間"}`}
+            title={t("dashboard.followerTrend")}
+            sub={t(period === "7" ? "dashboard.period.7" : "dashboard.actionTrend.sub")}
             right={
               followerDelta && (
                 <span
@@ -297,28 +297,28 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="顧客接点傾向"
-            sub="過去8週間の要約"
+            title={t("dashboard.actionTrend")}
+            sub={t("dashboard.actionTrend.sub")}
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
               <ActionPill
                 icon={<Heart className="w-4 h-4 text-orange-500" />}
-                label="いいね"
+                label={t("dashboard.likes")}
                 value={totalLikes}
               />
               <ActionPill
                 icon={<MessageCircle className="w-4 h-4 text-orange-500" />}
-                label="コメント"
+                label={t("dashboard.comments")}
                 value={totalComments}
               />
               <ActionPill
                 icon={<Bookmark className="w-4 h-4 text-orange-500" />}
-                label="保存"
+                label={t("dashboard.saves")}
                 value={totalSaves}
               />
               <ActionPill
                 icon={<Link2 className="w-4 h-4 text-orange-500" />}
-                label="サイトクリック数"
+                label={t("dashboard.clicks")}
                 value={totalClicks}
               />
             </div>
@@ -332,8 +332,8 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="顧客の性別構成(期間別)"
-            sub="月ごとの男女比の推移"
+            title={t("dashboard.gender.title")}
+            sub=""
             right={
               <div className="flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1">
@@ -361,8 +361,8 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="顧客の男女比"
-            sub="現在の構成比"
+            title={t("dashboard.gender.ratio")}
+            sub=""
           >
             <div className="h-48">
               <GenderDoughnutChart data={mockGenderRatio} />
@@ -388,8 +388,8 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="顧客の地域分布"
-            sub="上位8地域の分布"
+            title={t("dashboard.region")}
+            sub=""
           >
             <FollowerRegionChart data={mockRegions} />
           </DraggableCard>
@@ -399,8 +399,8 @@ export default function DashboardPage() {
           <DraggableCard
             key={key}
             dragProps={dragProps}
-            title="顧客接点の発生時間帯"
-            sub="時間単位での集計"
+            title={t("dashboard.postTime")}
+            sub=""
             right={
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 ⌚ 最適時刻:17:00
@@ -452,7 +452,7 @@ export default function DashboardPage() {
                   color: "white",
                   border: "1px solid rgba(255,255,255,0.3)",
                 }}
-                aria-label="期間を選択"
+                aria-label={t("dashboard.period.30")}
               >
                 {periodOptions.map((o) => (
                   <option
@@ -460,7 +460,7 @@ export default function DashboardPage() {
                     value={o.value}
                     style={{ color: "#0e3a4d" }}
                   >
-                    {o.label}
+                    {t(o.labelKey)}
                   </option>
                 ))}
               </select>
@@ -523,22 +523,22 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
             icon={<Users className="w-5 h-5 text-orange-500" />}
-            label="顧客接触人数"
+            label={t("dashboard.kpi.contacts")}
             value={mockKPI.followers}
           />
           <KPICard
             icon={<Eye className="w-5 h-5 text-orange-500" />}
-            label="プロフィール閲覧"
+            label={t("dashboard.kpi.profileViews")}
             value={mockKPI.profileViews}
           />
           <KPICard
             icon={<BarChart3 className="w-5 h-5 text-orange-500" />}
-            label="顧客への表示回数"
+            label={t("dashboard.kpi.impressions")}
             value={mockKPI.totalImpressions}
           />
           <KPICard
             icon={<Radio className="w-5 h-5 text-orange-500" />}
-            label="累計接触範囲"
+            label={t("dashboard.kpi.reach")}
             value={mockKPI.totalReach}
           />
         </div>
