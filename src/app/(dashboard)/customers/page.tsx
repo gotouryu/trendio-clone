@@ -296,7 +296,13 @@ function CustomerRow({ customer }: { customer: Customer }) {
             <span>
               {t("customers.totalInteractions")}: {customer.totalInteractions}
             </span>
-            {customer.region && <span>{customer.region}</span>}
+            {customer.region && (
+              <span>
+                {customer.region.startsWith("region.")
+                  ? t(customer.region)
+                  : customer.region}
+              </span>
+            )}
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0" />

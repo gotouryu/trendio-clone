@@ -227,7 +227,11 @@ export default function CustomerDetailPage({
           <StatTile
             icon={<UserIcon className="w-4 h-4 text-emerald-500" />}
             label={t("customerDetail.stat.attribute")}
-            value={`${customer.gender ?? "—"} / ${customer.ageRange ?? "—"}`}
+            value={`${customer.gender ?? "—"} / ${customer.ageRange ?? "—"}${
+              customer.region
+                ? ` / ${customer.region.startsWith("region.") ? t(customer.region) : customer.region}`
+                : ""
+            }`}
           />
         </div>
       </div>

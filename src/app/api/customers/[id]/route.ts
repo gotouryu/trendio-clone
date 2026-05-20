@@ -62,16 +62,49 @@ export async function PATCH(
     return NextResponse.json({ customer, mock: true });
   }
 
+  // Phase 4 修正(C3):POST 側と同じ tags/status sanitize を PATCH にも適用
+  const ALLOWED_TAGS = [
+    "VIP",
+    "既存顧客",
+    "問い合わせ多",
+    "新規",
+    "リピーター",
+    "クレーム経験",
+  ];
+  const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"];
+
   const payload: Record<string, unknown> = {};
-  if (body.displayName !== undefined) payload.display_name = body.displayName;
-  if (body.tags !== undefined) payload.tags = body.tags;
-  if (body.status !== undefined) payload.status = body.status;
+  if (body.displayName !== undefined) {
+    if (typeof body.displayName === "string" && body.displayName.length <= 80) {
+      payload.display_name = body.displayName;
+    }
+  }
+  if (body.tags !== undefined && Array.isArray(body.tags)) {
+    payload.tags = body.tags
+      .filter((tag) => ALLOWED_TAGS.includes(tag))
+      .slice(0, 6);
+  }
+  if (body.status !== undefined && ALLOWED_STATUS.includes(body.status)) {
+    payload.status = body.status;
+  }
   if (body.autoReplyEnabled !== undefined)
     payload.auto_reply_enabled = body.autoReplyEnabled;
-  if (body.notes !== undefined) payload.notes = body.notes;
+  if (
+    body.notes !== undefined &&
+    typeof body.notes === "string" &&
+    body.notes.length <= 2000
+  ) {
+    payload.notes = body.notes;
+  }
   if (body.ageRange !== undefined) payload.age_range = body.ageRange;
   if (body.gender !== undefined) payload.gender = body.gender;
-  if (body.region !== undefined) payload.region = body.region;
+  if (
+    body.region !== undefined &&
+    typeof body.region === "string" &&
+    body.region.length <= 50
+  ) {
+    payload.region = body.region;
+  }
 
   const { data, error } = await sb
     .from("customers")

@@ -165,7 +165,7 @@ export default function Sidebar() {
       </aside>
 
       <aside
-        className="hidden lg:flex w-56 flex-col h-screen sticky top-0"
+        className="hidden lg:flex w-56 flex-col h-screen sticky top-0 no-print"
         style={{ background: "var(--sidebar-bg)" }}
         aria-label={t("nav.main")}
       >

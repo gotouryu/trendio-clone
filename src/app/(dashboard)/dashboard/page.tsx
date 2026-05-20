@@ -212,7 +212,8 @@ export default function DashboardPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "report_failed");
-      setReportMd(j.report ?? "");
+      // Phase 4 修正(C1):API は `markdown` フィールドを返す(=旧コードは `j.report` で空表示バグ)
+      setReportMd(j.markdown ?? j.report ?? "");
     } catch (err) {
       setReportMd(
         err instanceof Error ? `Error: ${err.message}` : "Error generating report",

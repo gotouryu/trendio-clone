@@ -347,6 +347,17 @@ const dict: Record<Locale, Record<string, string>> = {
     "region.fukuoka": "福岡県",
     "region.hokkaido": "北海道",
 
+    // エラー / 404
+    "error.title": "エラーが発生しました",
+    "error.desc":
+      "予期しないエラーが発生しました。再読み込みするか、しばらく時間を置いてからお試しください。",
+    "error.retry": "再試行",
+    "error.toDashboard": "ダッシュボードへ",
+    "notFound.title": "ページが見つかりません",
+    "notFound.desc":
+      "お探しのページは削除されたか、URLが変更された可能性があります。",
+    "notFound.backToDashboard": "ダッシュボードへ戻る",
+
     // Signup(=招待制案内)
     "signup.title": "招待制サービス",
     "signup.intro.line1": "Karteia は招待制のサービスです。",
@@ -768,6 +779,17 @@ const dict: Record<Locale, Record<string, string>> = {
     "region.fukuoka": "Fukuoka",
     "region.hokkaido": "Hokkaido",
 
+    // Error / 404
+    "error.title": "Something went wrong",
+    "error.desc":
+      "An unexpected error occurred. Please reload or try again later.",
+    "error.retry": "Retry",
+    "error.toDashboard": "Go to Dashboard",
+    "notFound.title": "Page Not Found",
+    "notFound.desc":
+      "The page you were looking for may have been removed or its URL changed.",
+    "notFound.backToDashboard": "Back to Dashboard",
+
     // Signup
     "signup.title": "Invite-only Service",
     "signup.intro.line1": "Karteia is an invite-only service.",
@@ -882,7 +904,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(KEY) as Locale | null;
-      if (stored === "ja" || stored === "en") setLocaleState(stored);
+      if (stored === "ja" || stored === "en") {
+        setLocaleState(stored);
+        return;
+      }
+      // Phase 4 修正(C5):保存値なしならブラウザ言語から推定
+      // (=Meta/TikTok reviewer が en-* ブラウザで来た時に自動英語化)
+      if (typeof navigator !== "undefined") {
+        const browserLang = (navigator.language || "").toLowerCase();
+        if (browserLang.startsWith("en")) {
+          setLocaleState("en");
+          // 保存はしない(=ユーザーが手動で切り替えれば上書き)
+        }
+      }
     } catch {
       // ignore
     }

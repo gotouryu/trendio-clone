@@ -63,6 +63,45 @@ export async function exchangeTikTokCode(code: string): Promise<{
 }
 
 /**
+ * Fetch user profile info(=display_name, avatar_url, open_id 等)
+ * Phase 4 修正:OAuth callback で display_name を保存するために導入
+ */
+export async function fetchTikTokUserProfile(
+  accessToken: string,
+): Promise<{
+  open_id: string;
+  display_name: string;
+  avatar_url: string;
+} | null> {
+  const url = new URL(`${API_BASE}/user/info/`);
+  url.searchParams.set(
+    "fields",
+    "open_id,union_id,avatar_url,display_name",
+  );
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  type R = {
+    data: {
+      user: {
+        open_id: string;
+        display_name: string;
+        avatar_url: string;
+      };
+    };
+  };
+  const j = (await res.json()) as R;
+  return j.data?.user
+    ? {
+        open_id: j.data.user.open_id,
+        display_name: j.data.user.display_name,
+        avatar_url: j.data.user.avatar_url,
+      }
+    : null;
+}
+
+/**
  * Fetch user stats (follower_count, likes_count, video_count).
  */
 export async function fetchTikTokUserStats(

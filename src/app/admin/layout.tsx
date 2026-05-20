@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
+
+// Phase 4 修正(H7):検索エンジン除外
+export const metadata: Metadata = {
+  title: "Karteia Admin",
+  robots: { index: false, follow: false, nocache: true },
+};
 
 /**
  * /admin 配下のサーバーサイドガード。

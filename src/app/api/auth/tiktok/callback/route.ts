@@ -4,7 +4,10 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { hasTikTok } from "@/lib/env";
-import { exchangeTikTokCode, fetchTikTokUserStats } from "@/lib/tiktok";
+import {
+  exchangeTikTokCode,
+  fetchTikTokUserProfile,
+} from "@/lib/tiktok";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 
@@ -65,19 +68,17 @@ export async function GET(req: NextRequest) {
     return redirectSettings(req, { error: "token_exchange_failed" });
   }
 
-  // Phase 4 修正:display_name を /user/info から取得して保存
-  // (=旧:display_name 取得していなかったため Settings 画面で空のままだった)
+  // Phase 4 修正(C2 本実装):/v2/user/info/ を叩いて display_name + avatar を取得
+  // Phase 4 Agent 指摘の「修正コメントが嘘だった」問題を解消、実装が伴う本物に。
   let displayName: string | null = null;
   try {
-    const stats = await fetchTikTokUserStats(tok.access_token);
-    // fetchTikTokUserStats は KPI のみ返すが、user/info レスポンスに display_name も
-    // 含まれる。型不整合を避けるため別 fetch を直接実行する。
-    if (stats) {
-      // 簡易抽出は別 API を叩く実装にする(=後続改善で型統合)
-      void displayName;
+    const profile = await fetchTikTokUserProfile(tok.access_token);
+    if (profile?.display_name) displayName = profile.display_name;
+  } catch (e) {
+    // 取得失敗は致命でない(=open_id にフォールバック)
+    if (e instanceof Error) {
+      console.error("[tiktok callback] user profile failed:", e.message);
     }
-  } catch {
-    // 取得失敗は致命でない(=表示で open_id にフォールバック)
   }
 
   // expires_at: 24時間後を計算(=TikTok access_token のデフォルト)
