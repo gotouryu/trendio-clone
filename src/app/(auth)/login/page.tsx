@@ -223,12 +223,6 @@ export default function LoginPage() {
             サポート
           </Link>
         </div>
-        <div
-          className="text-center mt-3 text-xs"
-          style={{ color: "var(--muted-light)" }}
-        >
-          提供:株式会社ヘリックスプラス
-        </div>
       </div>
     </div>
   );
