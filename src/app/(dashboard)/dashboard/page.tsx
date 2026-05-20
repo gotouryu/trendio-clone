@@ -493,7 +493,7 @@ export default function DashboardPage() {
               Instagram 顧客接点
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              顧客のリーチ、エンゲージメント、属性分析
+              SNS 経由で発生した顧客接点・属性分析
             </p>
           </div>
         </div>
@@ -501,7 +501,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
             icon={<Users className="w-5 h-5 text-orange-500" />}
-            label="顧客リーチ数"
+            label="顧客接触人数"
             value={mockKPI.followers}
           />
           <KPICard
@@ -511,12 +511,12 @@ export default function DashboardPage() {
           />
           <KPICard
             icon={<BarChart3 className="w-5 h-5 text-orange-500" />}
-            label="インプレッション"
+            label="顧客への表示回数"
             value={mockKPI.totalImpressions}
           />
           <KPICard
             icon={<Radio className="w-5 h-5 text-orange-500" />}
-            label="リーチ"
+            label="累計接触範囲"
             value={mockKPI.totalReach}
           />
         </div>

@@ -21,10 +21,11 @@ export const runtime = "nodejs";
 
 // レートリミット設定
 const PER_CUSTOMER_COOLDOWN_HOURS = 24; // 1顧客につき1日1回まで
-const PER_USER_COOLDOWN_SECONDS = 60; // 1ユーザー全体で1分1回まで
+const PER_USER_COOLDOWN_SECONDS = 60; // 1ユーザー全体で1分1回まで(=連打防止)
 
-// メモリ内レートリミット(=軽量、サーバー再起動でリセットされる)
-const lastRunByUser = new Map<string, number>();
+// 入力サイズ制御(=Claude トークン超過防止)
+const MAX_INTERACTIONS_FOR_AI = 50;
+const MAX_CONTENT_LENGTH_PER_ITEM = 200;
 
 const SYSTEM_PROMPT = `あなたは熟練の顧客対応マネージャーです。以下の顧客の過去の発言履歴から、3つの観点で簡潔に要約してください。
 
@@ -49,26 +50,9 @@ export async function POST(
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const { id } = await ctx.params;
-
-  // 1. ユーザー全体レートリミット(=1分1回)
-  const userLast = lastRunByUser.get(auth.userId) ?? 0;
-  const elapsedSec = (Date.now() - userLast) / 1000;
-  if (elapsedSec < PER_USER_COOLDOWN_SECONDS) {
-    const wait = Math.ceil(PER_USER_COOLDOWN_SECONDS - elapsedSec);
-    return NextResponse.json(
-      {
-        error: `AI 分析は1分に1回までです。あと ${wait} 秒お待ちください。`,
-        nextAvailableAt: new Date(
-          userLast + PER_USER_COOLDOWN_SECONDS * 1000,
-        ).toISOString(),
-      },
-      { status: 429 },
-    );
-  }
-
   const sb = await createSupabaseServer();
 
-  // 2. 顧客レコード取得 + 1日1回レートリミット
+  // 1. 顧客レコード取得(=所有確認)
   let customer:
     | {
         id: string;
@@ -102,22 +86,63 @@ export async function POST(
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
-  if (customer.ai_analysis_at) {
+  // 2. cache hit を最優先で評価(=24時間以内のキャッシュなら LLM を呼ばずに返す)
+  // これを先にすると、cache hit で 60秒レートリミットに引っかからずに済む。
+  if (customer.ai_analysis_at && customer.ai_analysis) {
     const lastAtMs = new Date(customer.ai_analysis_at).getTime();
     const hoursSince = (Date.now() - lastAtMs) / (1000 * 60 * 60);
-    if (hoursSince < PER_CUSTOMER_COOLDOWN_HOURS && customer.ai_analysis) {
-      // キャッシュ済み:24時間以内なら既存結果を返す
-      return NextResponse.json({
-        analysis: customer.ai_analysis,
-        cached: true,
-        nextAvailableAt: new Date(
-          lastAtMs + PER_CUSTOMER_COOLDOWN_HOURS * 3600 * 1000,
-        ).toISOString(),
-      });
+    if (hoursSince < PER_CUSTOMER_COOLDOWN_HOURS) {
+      // ランタイム検証:壊れた jsonb が入ってる可能性を避ける
+      const a = customer.ai_analysis;
+      if (
+        typeof a.interests === "string" &&
+        typeof a.cautions === "string" &&
+        typeof a.summary === "string"
+      ) {
+        return NextResponse.json({
+          analysis: a,
+          cached: true,
+          nextAvailableAt: new Date(
+            lastAtMs + PER_CUSTOMER_COOLDOWN_HOURS * 3600 * 1000,
+          ).toISOString(),
+        });
+      }
+      // 壊れたデータなら再生成に進む
     }
   }
 
-  // 3. 接点履歴を集約
+  // 3. cache miss:ユーザー単位レートリミット(=LLM呼び出しコスト防御、DB由来で永続化)
+  // 直近 PER_USER_COOLDOWN_SECONDS 秒以内に自分の顧客で生成があれば429
+  if (sb) {
+    const sinceIso = new Date(
+      Date.now() - PER_USER_COOLDOWN_SECONDS * 1000,
+    ).toISOString();
+    const { data: recent } = await sb
+      .from("customers")
+      .select("ai_analysis_at")
+      .eq("user_id", auth.userId)
+      .gt("ai_analysis_at", sinceIso)
+      .order("ai_analysis_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (recent?.ai_analysis_at) {
+      const userLastMs = new Date(recent.ai_analysis_at).getTime();
+      const wait = Math.ceil(
+        (userLastMs + PER_USER_COOLDOWN_SECONDS * 1000 - Date.now()) / 1000,
+      );
+      return NextResponse.json(
+        {
+          error: `AI 分析は1分に1回までです。あと ${wait} 秒お待ちください。`,
+          nextAvailableAt: new Date(
+            userLastMs + PER_USER_COOLDOWN_SECONDS * 1000,
+          ).toISOString(),
+        },
+        { status: 429 },
+      );
+    }
+  }
+
+  // 4. 接点履歴を集約(=トークン超過を避けるため件数 + 長さを制限)
   let interactions: CustomerInteraction[] = [];
   if (sb) {
     const { data: rows } = await sb
@@ -126,17 +151,23 @@ export async function POST(
       .eq("customer_id", id)
       .eq("user_id", auth.userId)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(MAX_INTERACTIONS_FOR_AI);
     interactions = (rows ?? []).map((r) => ({
       id: r.id,
       customerId: r.customer_id,
       type: r.type,
-      content: r.content ?? "",
+      content: (r.content ?? "").slice(0, MAX_CONTENT_LENGTH_PER_ITEM),
       category: r.category ?? undefined,
       createdAt: r.created_at,
     }));
   } else {
-    interactions = mockInteractions.filter((i) => i.customerId === id);
+    interactions = mockInteractions
+      .filter((i) => i.customerId === id)
+      .slice(0, MAX_INTERACTIONS_FOR_AI)
+      .map((i) => ({
+        ...i,
+        content: i.content.slice(0, MAX_CONTENT_LENGTH_PER_ITEM),
+      }));
   }
 
   if (interactions.length === 0) {
@@ -181,10 +212,11 @@ ${historyText}
         user: userPrompt,
         maxTokens: 800,
       });
+      // Claude が ```json...``` で囲む / ``` だけで囲む / 何も囲まない いずれにも対応
       const cleaned = raw
         .trim()
-        .replace(/^```json\s*/i, "")
-        .replace(/```$/, "")
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "")
         .trim();
       const parsed = JSON.parse(cleaned) as {
         interests: string;
@@ -211,8 +243,7 @@ ${historyText}
     }
   }
 
-  // 5. レートリミット記録 + 永続化
-  lastRunByUser.set(auth.userId, Date.now());
+  // 5. 永続化(=DB由来のレートリミット記録を兼ねる、サーバーレス環境でも有効)
   if (sb) {
     await sb
       .from("customers")

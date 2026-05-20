@@ -18,7 +18,6 @@ import {
 import { mockComments } from "@/lib/mockData";
 import type { CommentItem, AutoReplyLog, AutoReplySettings } from "@/lib/types";
 import { useToast } from "@/components/providers/ToasterProvider";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 
 const filterOptions = [
   { value: "all", label: "すべて" },
@@ -48,10 +47,9 @@ export default function CommentsPage() {
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [query, setQuery] = useState("");
-  const [comments, setComments] = useLocalStorage<CommentItem[]>(
-    "customercare-comments-state",
-    mockComments,
-  );
+  // localStorage 永続化は撤去:Instagram Graph API 接続後は ig_comments テーブルから取得。
+  // 現在はデモ用 mockComments を初期表示し、ユーザーの返信/アーカイブ操作はメモリ内のみ保持。
+  const [comments, setComments] = useState<CommentItem[]>(mockComments);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [aiGeneratingFor, setAiGeneratingFor] = useState<string | null>(null);
@@ -92,14 +90,18 @@ export default function CommentsPage() {
     let list = comments;
 
     if (filter !== "all") {
-      const now = new Date();
+      const nowMs = Date.now();
       const cutoff =
         filter === "today"
-          ? new Date(now.setHours(0, 0, 0, 0))
+          ? (() => {
+              const d = new Date();
+              d.setHours(0, 0, 0, 0);
+              return d;
+            })()
           : filter === "7"
-            ? new Date(now.setDate(now.getDate() - 7))
+            ? new Date(nowMs - 7 * 24 * 3600 * 1000)
             : filter === "30"
-              ? new Date(now.setDate(now.getDate() - 30))
+              ? new Date(nowMs - 30 * 24 * 3600 * 1000)
               : null;
       if (cutoff) list = list.filter((c) => new Date(c.timestamp) >= cutoff);
     }

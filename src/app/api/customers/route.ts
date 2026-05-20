@@ -19,11 +19,16 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
-  const search = searchParams.get("search")?.toLowerCase();
+  const rawSearch = searchParams.get("search")?.toLowerCase() ?? "";
+  // PostgREST の or() に直挿入するため構文文字を除去(=,()*:%, バックスラッシュ)。
+  // これを sanitize しないと "foo,status.eq.admin" のような値で別フィルタを差し込まれる。
+  const search = rawSearch.replace(/[,()*:%\\]/g, "").trim().slice(0, 64);
   const status = searchParams.get("status");
   const tag = searchParams.get("tag");
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limitRaw = parseInt(searchParams.get("limit") ?? "50", 10);
+  const offsetRaw = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limit = Math.min(Number.isFinite(limitRaw) ? limitRaw : 50, 200);
+  const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
 
   const sb = await createSupabaseServer();
   if (!sb) {
@@ -108,6 +113,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ customer, mock: true });
   }
 
+  const now = new Date().toISOString();
   const { data, error } = await sb
     .from("customers")
     .upsert(
@@ -116,6 +122,13 @@ export async function POST(req: NextRequest) {
         instagram_handle: body.instagramHandle,
         display_name: body.displayName ?? body.instagramHandle,
         profile_image_url: body.profileImageUrl,
+        // 初回挿入時は first_contact_at / last_contact_at を now() で埋める。
+        // 既存行に対する upsert ではこれらは onConflict の DO UPDATE で上書きされうるため、
+        // 既存行を更新する場合は last_contact_at だけを更新するべきだが、
+        // POST は「名寄せ初期化」用途。実運用では customer_interactions INSERT のトリガーで
+        // last_contact_at は更新されるため、ここは upsert 互換に保つ。
+        first_contact_at: now,
+        last_contact_at: now,
         tags: body.tags ?? ["新規"],
         status: body.status ?? "new",
         auto_reply_enabled: body.autoReplyEnabled ?? true,
@@ -124,7 +137,7 @@ export async function POST(req: NextRequest) {
         gender: body.gender,
         region: body.region,
       },
-      { onConflict: "user_id,instagram_handle" },
+      { onConflict: "user_id,instagram_handle", ignoreDuplicates: false },
     )
     .select()
     .single();

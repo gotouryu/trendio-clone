@@ -277,7 +277,8 @@ create policy "customer_interactions: own rows" on public.customer_interactions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- 集計ビュー:顧客カルテ一覧で使う
-create or replace view public.customer_overview_v as
+create or replace view public.customer_overview_v
+with (security_invoker = true) as
 select
   c.id,
   c.user_id,

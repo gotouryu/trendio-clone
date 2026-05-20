@@ -560,30 +560,10 @@ export default function SettingsPage() {
             </div>
 
             {/* Default Template */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Save className="w-4 h-4 text-gray-500" />
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  デフォルト応答テンプレ
-                </h3>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                FAQに該当しないコメントが営業時間外に来た場合の応答(空欄なら応答しない)
-              </p>
-              <textarea
-                value={arSettings.defaultTemplate}
-                onChange={(e) =>
-                  setArSettings({
-                    ...arSettings,
-                    defaultTemplate: e.target.value,
-                  })
-                }
-                onBlur={() => saveAutoReply(arSettings)}
-                rows={3}
-                placeholder="例:お問い合わせありがとうございます。担当者より順次お返事いたします。"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+            <DefaultTemplateEditor
+              value={arSettings.defaultTemplate}
+              onSave={(v) => saveAutoReply({ ...arSettings, defaultTemplate: v })}
+            />
           </>
         )}
         {!arSettings && (
@@ -634,7 +614,16 @@ function FaqEditor({
   onDelete: () => void;
 }) {
   const [local, setLocal] = useState(pattern);
-  useEffect(() => setLocal(pattern), [pattern]);
+  // 親値で local を上書きするのは「別 FAQ に切り替わった時(=id 変更)」だけにする。
+  // pattern オブジェクト参照で同期すると、入力中の未確定テキストが上書きで消える。
+  useEffect(() => setLocal(pattern), [pattern.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 有効/無効トグルは即時親に伝える(=local も同期)
+  function toggleEnabled(enabled: boolean) {
+    const next = { ...local, enabled };
+    setLocal(next);
+    onChange(next);
+  }
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
@@ -643,9 +632,7 @@ function FaqEditor({
           <input
             type="checkbox"
             checked={local.enabled}
-            onChange={(e) =>
-              onChange({ ...local, enabled: e.target.checked })
-            }
+            onChange={(e) => toggleEnabled(e.target.checked)}
             className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
           />
           <span className="text-gray-600 dark:text-gray-300">有効</span>
@@ -672,6 +659,42 @@ function FaqEditor({
         rows={2}
         placeholder="定型応答文"
         className="w-full mt-2 px-2 py-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-xs"
+      />
+    </div>
+  );
+}
+
+function DefaultTemplateEditor({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  // ローカルバッファ:onBlur で初めて親 state を更新する(=入力中に他操作が走って未確定文字列が保存されるのを防ぐ)
+  const [local, setLocal] = useState(value);
+  useEffect(() => setLocal(value), [value]);
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Save className="w-4 h-4 text-gray-500" />
+        <h3 className="font-medium text-gray-900 dark:text-gray-100">
+          デフォルト応答テンプレ
+        </h3>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        FAQに該当しないコメントが営業時間外に来た場合の応答(空欄なら応答しない)
+      </p>
+      <textarea
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={() => {
+          if (local !== value) onSave(local);
+        }}
+        rows={3}
+        placeholder="例:お問い合わせありがとうございます。担当者より順次お返事いたします。"
+        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
       />
     </div>
   );

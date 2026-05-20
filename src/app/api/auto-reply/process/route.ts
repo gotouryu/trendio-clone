@@ -2,14 +2,16 @@
  * POST /api/auto-reply/process — 新規コメントを自動応答処理する
  *
  * Body: { commentId: string, commentText: string, customerHandle: string, customerAvatar?: string, customerId?: string }
- * Response: { status: 'sent'|'skipped'|'blocked_ng'|'failed', logId?: string, reply?: string, reason?: string }
+ * Response: { status: 'sent'|'skipped'|'blocked_ng'|'failed'|'duplicate', logId?: string, reply?: string, reason?: string }
  *
- * 共P-01「無人受付」の中核ロジック:
+ * 共P-01「無人受付」の中核ロジック(=機能説明資料 P.5 設定条件 営業時間外・FAQ該当等):
+ * 0. 同 comment_id で既に sent ログがあれば duplicate でスキップ(=冪等性)
  * 1. 自動応答モードOFFならスキップ
- * 2. NGワード含むなら blocked_ng でログのみ残す
- * 3. 営業時間内 + FAQマッチ なら即時応答(=faq_match)
- * 4. 営業時間外なら、FAQマッチまたはデフォルト応答(=business_hours_out)
- * 5. それ以外はスキップ
+ * 2. NGワード含むなら blocked_ng でログのみ残す(=Human-in-the-Loop)
+ * 3. FAQマッチがあれば営業時間内外問わず応答(=共P-01 設定条件「FAQ該当」)
+ *    - triggerReason は 営業時間内なら faq_match、時間外なら business_hours_out
+ * 4. FAQ非該当 + 営業時間外 + デフォルトテンプレあり → デフォルト応答
+ * 5. それ以外(=営業時間内かつFAQ非該当)はスキップ(=人間が手動応答する)
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
@@ -50,6 +52,24 @@ export async function POST(req: NextRequest) {
 
   const sb = await createSupabaseServer();
 
+  // 冪等性:同 comment_id で既に sent ログがあれば多重応答を防ぐ
+  if (sb) {
+    const { data: existingLog } = await sb
+      .from("auto_reply_logs")
+      .select("id, status")
+      .eq("user_id", auth.userId)
+      .eq("comment_id", body.commentId)
+      .in("status", ["sent", "blocked_ng"])
+      .maybeSingle();
+    if (existingLog) {
+      return NextResponse.json({
+        status: "skipped",
+        reason: "duplicate_comment_id",
+        logId: existingLog.id,
+      });
+    }
+  }
+
   // 設定取得
   let settings: AutoReplySettings = mockAutoReplySettings;
   if (sb) {
@@ -71,6 +91,18 @@ export async function POST(req: NextRequest) {
 
   const result = processComment(body.commentText, settings);
 
+  // customer_id の所有確認(=列挙攻撃防御、自分の顧客以外は触れない)
+  let verifiedCustomerId: string | null = null;
+  if (sb && body.customerId) {
+    const { data: ownCustomer } = await sb
+      .from("customers")
+      .select("id")
+      .eq("id", body.customerId)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    if (ownCustomer) verifiedCustomerId = ownCustomer.id;
+  }
+
   // ログ保存(=共P-01 5年間ログ保管要件)
   if (sb && result.status !== "skipped") {
     const { data: logRow } = await sb
@@ -78,7 +110,7 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: auth.userId,
         comment_id: body.commentId,
-        customer_id: body.customerId ?? null,
+        customer_id: verifiedCustomerId,
         customer_handle: body.customerHandle,
         customer_avatar: body.customerAvatar,
         original_comment: body.commentText,
@@ -92,10 +124,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     // 接点履歴(customer_interactions)にも追記(=共P-01 顧客行動履歴)
-    if (result.status === "sent" && body.customerId) {
+    // 所有確認済みの customer_id のみ INSERT する(=トリガー bump_customer_aggregate が安全に走る)
+    if (result.status === "sent" && verifiedCustomerId) {
       await sb.from("customer_interactions").insert({
         user_id: auth.userId,
-        customer_id: body.customerId,
+        customer_id: verifiedCustomerId,
         type: "reply_auto",
         content: result.reply,
         handled_by: "ai",
