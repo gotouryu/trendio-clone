@@ -7,6 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { assertSameOrigin } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,8 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 

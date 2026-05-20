@@ -12,6 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { assertSameOrigin } from "@/lib/csrf";
 import { hasAnthropic } from "@/lib/env";
 import { runClaude } from "@/lib/claudeClient";
 import { mockCustomers, mockInteractions } from "@/lib/mockData";
@@ -44,9 +45,11 @@ const SYSTEM_PROMPT = `あなたは熟練の顧客対応マネージャーです
 - JSON 以外の文字は出力しない`;
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const { id } = await ctx.params;

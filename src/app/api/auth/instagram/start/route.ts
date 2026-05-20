@@ -34,8 +34,9 @@ export async function GET(_req: NextRequest) {
   const state = randomBytes(24).toString("hex");
   const url = buildInstagramOAuthUrl(state);
   const res = NextResponse.redirect(url);
-  // state を httpOnly cookie に保存。SameSite=Lax で Meta からの戻りリクエストでも送られる。
-  res.cookies.set("ig_oauth_state", state, {
+  // Phase 3 Wave-B 修正:state cookie に user_id をバインド(=同一ブラウザで
+  // 別アカウントに切り替わった時のアカウントスワップ事故を防止)
+  res.cookies.set("ig_oauth_state", `${state}.${auth.userId}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

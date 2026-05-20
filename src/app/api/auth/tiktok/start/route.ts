@@ -27,7 +27,8 @@ export async function GET(_req: NextRequest) {
   const state = randomBytes(24).toString("hex");
   const url = buildTikTokOAuthUrl(state);
   const res = NextResponse.redirect(url);
-  res.cookies.set("tt_oauth_state", state, {
+  // Phase 3 Wave-B 修正:state cookie に user_id をバインド
+  res.cookies.set("tt_oauth_state", `${state}.${auth.userId}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -13,6 +13,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasAnthropic } from "@/lib/env";
 import { runClaude } from "@/lib/claudeClient";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { assertSameOrigin } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,8 @@ const SYSTEM_PROMPT = `あなたは中小企業の顧客対応マネージャー
 - 返信文だけを出力(=「以下の返信文を提案します:」のような前置き禁止)`;
 
 export async function POST(req: NextRequest) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
@@ -83,12 +86,16 @@ export async function POST(req: NextRequest) {
       generated: true,
     });
   } catch (err) {
-    // 失敗時はフォールバックでサービス継続(=可用性優先)
+    // Phase 3 Wave-B 修正:Anthropic SDK のエラー文が API キー prefix 等の
+    // 内部情報を含むので、固定文字列のみ返す。詳細はサーバーログのみ。
+    if (err instanceof Error) {
+      console.error("[ai-reply] generation failed:", err.message);
+    }
     return NextResponse.json({
       reply: fallbackReply(body.commentText),
       model: "fallback-template",
       generated: false,
-      error: err instanceof Error ? err.message : "AI generation failed",
+      error: "ai_generation_failed",
     });
   }
 }

@@ -42,10 +42,31 @@ export async function GET(req: NextRequest) {
   const stateCookie = req.cookies.get("ig_oauth_state")?.value;
   const errParam = req.nextUrl.searchParams.get("error");
 
-  if (errParam) return redirectSettings(req, { error: errParam });
+  // Phase 3 Wave-B 修正:既知のエラー値のみ通す(=反射 XSS 余地を塞ぐ)
+  const ALLOWED_ERRORS = new Set([
+    "access_denied",
+    "missing_code",
+    "state_mismatch",
+    "user_mismatch",
+    "token_exchange_failed",
+    "no_ig_business_account",
+    "db_upsert_failed",
+    "meta_not_configured",
+    "supabase_not_configured",
+  ]);
+  if (errParam) {
+    const safe = ALLOWED_ERRORS.has(errParam) ? errParam : "unknown";
+    return redirectSettings(req, { error: safe });
+  }
   if (!code || !state) return redirectSettings(req, { error: "missing_code" });
-  if (!stateCookie || state !== stateCookie)
+  if (!stateCookie) return redirectSettings(req, { error: "state_mismatch" });
+
+  // cookie 値は `state.userId` 形式。state 一致 + userId 一致 の両方を要求
+  const [cookieState, cookieUserId] = stateCookie.split(".");
+  if (state !== cookieState)
     return redirectSettings(req, { error: "state_mismatch" });
+  if (!cookieUserId || cookieUserId !== auth.userId)
+    return redirectSettings(req, { error: "user_mismatch" });
 
   let userAccessToken: string;
   try {

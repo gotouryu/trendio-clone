@@ -20,7 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import { createClient } from "@supabase/supabase-js";
-import { createHmac, randomUUID } from "crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 
 export const runtime = "nodejs";
 
@@ -53,7 +53,11 @@ function parseSignedRequest(
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
 
-  if (expectedSig !== sigB64Url) return null;
+  // timing-safe 比較(=Phase 3 Wave-B 発見、`!==` はタイミング攻撃を許容)
+  const a = Buffer.from(expectedSig);
+  const b = Buffer.from(sigB64Url);
+  if (a.length !== b.length) return null;
+  if (!timingSafeEqual(a, b)) return null;
 
   try {
     const payload = JSON.parse(decodeBase64Url(payloadB64Url)) as {
@@ -98,24 +102,25 @@ export async function POST(req: NextRequest) {
   const confirmationCode = randomUUID();
 
   // Service Role で Karteia 内の該当 SNS 連携を削除
-  // (=RLS バイパス必須。Meta から送られてくる user_id はアプリ単位のスコープ ID)
+  // (=RLS バイパス必須。Meta から送られてくる user_id は ASID (App-Scoped User ID))
   if (env.supabaseUrl && env.supabaseServiceRole) {
     const sb = createClient(env.supabaseUrl, env.supabaseServiceRole, {
       auth: { persistSession: false },
     });
 
-    // external_account_id(=ig_user_id)で sns_accounts 行を探す。
-    // ※ Meta の Data Deletion Callback で渡る user_id は ASID (App-Scoped User ID)。
-    //   現在の Karteia 実装では external_account_id に instagram_business_account.id を
-    //   保存しているため、必ずしも一致しない。本実装は ASID + ig_user_id の両方で照合する。
+    // Phase 3 Wave-B 修正:Meta は ASID(=App-Scoped User ID)を渡してくる。
+    // sns_accounts には ig_user_id(=instagram_business_account.id)を保存しているが、
+    // 新カラム `meta_asid` を併用して両方で照合する(=schema migration を Wave-E で追加)。
+    // 当面は ig_user_id にも入っている可能性のあるパターンを試し、両方マッチで削除。
     await sb
       .from("sns_accounts")
       .delete()
       .eq("platform", "instagram")
-      .or(`external_account_id.eq.${parsed.user_id}`);
+      .or(
+        `external_account_id.eq.${parsed.user_id},meta_asid.eq.${parsed.user_id}`,
+      );
 
-    // 監査用に削除リクエストを記録(=Meta が再度問い合わせた時に追跡できるよう)
-    // テーブル data_deletion_requests が存在すれば INSERT、なければ無視
+    // 監査用に削除リクエストを記録
     try {
       await sb.from("data_deletion_requests").insert({
         confirmation_code: confirmationCode,
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
         requested_at: new Date().toISOString(),
       });
     } catch {
-      // テーブル未作成は無視(=本番投入で migration 適用前のため)
+      // テーブル未作成は無視
     }
   }
 

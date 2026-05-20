@@ -9,6 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { assertSameOrigin } from "@/lib/csrf";
 import { mockCustomers } from "@/lib/mockData";
 import type { Customer } from "@/lib/types";
 
@@ -88,6 +89,8 @@ export async function GET(req: NextRequest) {
  * 用途:Instagram Graph API 経由で新規コメント取得時、まずこのAPIで顧客レコードを upsert する。
  */
 export async function POST(req: NextRequest) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
@@ -100,6 +103,31 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Phase 3 Wave-B 修正:input validation
+  if (body.instagramHandle.length > 30 ||
+      !/^[A-Za-z0-9._]+$/.test(body.instagramHandle)) {
+    return NextResponse.json(
+      { error: "invalid instagramHandle" },
+      { status: 400 },
+    );
+  }
+  if (body.displayName && body.displayName.length > 80) {
+    return NextResponse.json(
+      { error: "displayName too long" },
+      { status: 400 },
+    );
+  }
+  // 許可されたタグのみ受け付け(=Critical C6-E)
+  const ALLOWED_TAGS = ["VIP", "既存顧客", "問い合わせ多", "新規", "リピーター", "クレーム経験"];
+  const sanitizedTags = body.tags
+    ? body.tags.filter((tag) => ALLOWED_TAGS.includes(tag)).slice(0, 6)
+    : undefined;
+  // status は schema CHECK 制約で守られているが、念のため明示
+  const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"];
+  const sanitizedStatus = body.status && ALLOWED_STATUS.includes(body.status)
+    ? body.status
+    : undefined;
 
   const sb = await createSupabaseServer();
   if (!sb) {
@@ -153,7 +181,7 @@ export async function POST(req: NextRequest) {
     data = res.data as CustomerRow | null;
     error = res.error;
   } else {
-    // 新規行:全フィールドを初期化
+    // 新規行:全フィールドを初期化(=sanitized 値を使用)
     const res = await sb
       .from("customers")
       .insert({
@@ -163,8 +191,8 @@ export async function POST(req: NextRequest) {
         profile_image_url: body.profileImageUrl,
         first_contact_at: now,
         last_contact_at: now,
-        tags: body.tags ?? ["新規"],
-        status: body.status ?? "new",
+        tags: sanitizedTags ?? ["新規"],
+        status: sanitizedStatus ?? "new",
         auto_reply_enabled: body.autoReplyEnabled ?? true,
         notes: body.notes,
         age_range: body.ageRange,

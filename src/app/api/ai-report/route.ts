@@ -9,6 +9,7 @@ import type {
   HourlyEngagement,
 } from "@/lib/types";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { assertSameOrigin } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,8 @@ const SYSTEM_PROMPT = `あなたはシニアSNSアナリストです。Instagram
 数字は根拠ベースで具体的に書く。一般論や曖昧表現は避ける。`;
 
 export async function POST(req: NextRequest) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 

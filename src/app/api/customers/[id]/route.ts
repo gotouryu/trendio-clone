@@ -7,6 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { assertSameOrigin } from "@/lib/csrf";
 import { mockCustomers } from "@/lib/mockData";
 import type { Customer } from "@/lib/types";
 
@@ -45,6 +46,8 @@ export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const { id } = await ctx.params;

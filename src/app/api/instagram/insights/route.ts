@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const since = searchParams.get("since") ?? undefined;
   const until = searchParams.get("until") ?? undefined;
-  let igUserId = searchParams.get("igUserId");
-  let accessToken = searchParams.get("accessToken");
+  // Phase 3 Wave-B 修正:本番では accessToken クエリオーバーライドを禁止
+  // (=URL に長期トークンが残ると CDN/proxy ログから漏洩する)
+  const allowOverride = process.env.NODE_ENV !== "production";
+  let igUserId = allowOverride ? searchParams.get("igUserId") : null;
+  let accessToken = allowOverride ? searchParams.get("accessToken") : null;
 
   // クエリで明示されていない場合は sns_accounts から取り出す
   if (!igUserId || !accessToken) {

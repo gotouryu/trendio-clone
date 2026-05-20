@@ -4,6 +4,7 @@ import { runClaude } from "@/lib/claudeClient";
 import { mockContentIdeas } from "@/lib/mockData";
 import type { ContentIdea } from "@/lib/types";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { assertSameOrigin } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,8 @@ const SYSTEM_PROMPT = `あなたは経験豊富なSNSマーケターです。Ins
 ]`;
 
 export async function POST(req: NextRequest) {
+  const csrf = assertSameOrigin(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 

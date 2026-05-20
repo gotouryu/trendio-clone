@@ -31,10 +31,29 @@ export async function GET(req: NextRequest) {
   const stateCookie = req.cookies.get("tt_oauth_state")?.value;
   const errParam = req.nextUrl.searchParams.get("error");
 
-  if (errParam) return redirectSettings(req, { error: errParam });
+  // Phase 3 Wave-B 修正:既知のエラー値のみ通す
+  const ALLOWED_ERRORS = new Set([
+    "access_denied",
+    "missing_code",
+    "state_mismatch",
+    "user_mismatch",
+    "token_exchange_failed",
+    "tiktok_not_configured",
+    "db_upsert_failed",
+    "supabase_not_configured",
+  ]);
+  if (errParam) {
+    const safe = ALLOWED_ERRORS.has(errParam) ? errParam : "unknown";
+    return redirectSettings(req, { error: safe });
+  }
   if (!code || !state) return redirectSettings(req, { error: "missing_code" });
-  if (!stateCookie || state !== stateCookie)
+  if (!stateCookie) return redirectSettings(req, { error: "state_mismatch" });
+
+  const [cookieState, cookieUserId] = stateCookie.split(".");
+  if (state !== cookieState)
     return redirectSettings(req, { error: "state_mismatch" });
+  if (!cookieUserId || cookieUserId !== auth.userId)
+    return redirectSettings(req, { error: "user_mismatch" });
 
   let tok: Awaited<ReturnType<typeof exchangeTikTokCode>>;
   try {
