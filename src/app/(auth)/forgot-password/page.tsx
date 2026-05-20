@@ -2,15 +2,48 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createSupabaseBrowser, isSupabaseReady } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import { env } from "@/lib/env";
 
+/**
+ * Password reset request page.
+ * Calls Supabase Auth resetPasswordForEmail with the production reset URL.
+ * Always shows the same success message regardless of whether the email
+ * exists in the database (prevents email enumeration attacks).
+ */
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Phase 1B: Supabase 接続後は sb.auth.resetPasswordForEmail(email) を呼ぶ
-    setSent(true);
+    setError("");
+    if (!email) return;
+    setSubmitting(true);
+
+    if (!isSupabaseReady()) {
+      setError(t("forgot.err.notConfigured"));
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const sb = createSupabaseBrowser();
+      const redirectTo = `${env.appUrl.replace(/\/$/, "")}/reset-password`;
+      // Supabase returns success even for non-existent emails — that is the
+      // intended behaviour (no email enumeration). We always show "sent".
+      await sb.auth.resetPasswordForEmail(email, { redirectTo });
+      setSent(true);
+    } catch {
+      // Network failures: still show generic "sent" to prevent enumeration
+      setSent(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -18,36 +51,48 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            パスワードをお忘れですか?
+            {t("forgot.title")}
           </h1>
           <p className="text-center text-gray-500 text-sm mb-6">
-            登録メールアドレスにリセット用リンクを送信します
+            {t("forgot.subtitle")}
           </p>
 
           {sent ? (
             <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg text-sm text-gray-700">
-              {email} にメールを送信しました(=Supabase Auth 接続後に有効)。受信ボックスをご確認ください。
+              {t("forgot.success", { email })}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  メールアドレス
+                <label
+                  htmlFor="forgot-email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  {t("login.email")}
                 </label>
                 <input
+                  id="forgot-email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
+                  placeholder={t("login.emailPlaceholder")}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
+                  {error}
+                </div>
+              )}
               <button
                 type="submit"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-lg"
+                disabled={submitting}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-medium py-3 rounded-lg"
               >
-                リセットリンクを送る
+                {submitting ? t("forgot.submitting") : t("forgot.submit")}
               </button>
             </form>
           )}
@@ -57,7 +102,7 @@ export default function ForgotPasswordPage() {
               href="/login"
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
-              ログインに戻る
+              {t("forgot.backToLogin")}
             </Link>
           </p>
         </div>

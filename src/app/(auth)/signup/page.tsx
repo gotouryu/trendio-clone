@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 
 export default function SignupDisabledPage() {
+  const { t } = useI18n();
   return (
     <div className="auth-bg min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
@@ -20,29 +24,29 @@ export default function SignupDisabledPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-            招待制サービス
+            {t("signup.title")}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-            Karteia は招待制のサービスです。
+            {t("signup.intro.line1")}
             <br />
-            お客様アカウントは管理者から発行されます。
+            {t("signup.intro.line2")}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            ご利用希望の方は弊社営業担当までお問い合わせください。
+            {t("signup.contact")}
           </p>
           <Link
             href="/login"
             className="inline-block w-full px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium"
           >
-            ログイン画面へ戻る
+            {t("signup.backToLogin")}
           </Link>
           <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-            既にアカウントをお持ちですか?{" "}
+            {t("signup.haveAccount")}{" "}
             <Link
               href="/login"
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
-              ログイン
+              {t("login.submit")}
             </Link>
           </div>
         </div>

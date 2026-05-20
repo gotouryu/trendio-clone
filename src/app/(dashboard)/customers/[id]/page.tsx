@@ -401,30 +401,37 @@ function CategoryTile({
 }
 
 function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
-  const typeLabel = {
-    comment: { label: "コメント", cls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
-    reply_auto: { label: "AI自動返信", cls: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" },
-    reply_manual: { label: "手動返信", cls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
-    like: { label: "いいね", cls: "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300" },
-    save: { label: "保存", cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
-  }[interaction.type];
+  const { t, locale } = useI18n();
+  const typeClsMap = {
+    comment: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    reply_auto:
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300",
+    reply_manual:
+      "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    like: "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300",
+    save: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+  };
+  const cls = typeClsMap[interaction.type as keyof typeof typeClsMap] ?? typeClsMap.comment;
 
   return (
     <div className="border-l-2 border-emerald-200 dark:border-emerald-700 pl-3 py-2">
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeLabel.cls}`}>
-          {typeLabel.label}
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
+          {t(`customerDetail.interaction.type.${interaction.type}`)}
         </span>
         {interaction.category && (
           <CategoryBadge category={interaction.category} />
         )}
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          {new Date(interaction.createdAt).toLocaleString("ja-JP", {
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {new Date(interaction.createdAt).toLocaleString(
+            locale === "en" ? "en-US" : "ja-JP",
+            {
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            },
+          )}
         </span>
       </div>
       <p className="text-sm text-gray-800 dark:text-gray-200">
@@ -435,17 +442,17 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
 }
 
 function CategoryBadge({ category }: { category: InquiryCategory }) {
-  const map = {
-    product_inquiry: { label: "商品問い合わせ", cls: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" },
-    business_hours: { label: "営業時間", cls: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
-    complaint: { label: "クレーム", cls: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300" },
-    positive: { label: "ポジティブ", cls: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
-    other: { label: "その他", cls: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" },
+  const { t } = useI18n();
+  const clsMap = {
+    product_inquiry: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+    business_hours: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    complaint: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+    positive: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    other: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
   };
-  const m = map[category];
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full ${m.cls}`}>
-      {m.label}
+    <span className={`text-xs px-2 py-0.5 rounded-full ${clsMap[category]}`}>
+      {t(`comments.category.${category}`)}
     </span>
   );
 }

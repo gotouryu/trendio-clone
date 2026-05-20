@@ -212,6 +212,11 @@ const dict: Record<Locale, Record<string, string>> = {
     "customerDetail.interactions.title": "接点履歴(時系列)",
     "customerDetail.interactions.count": "{n} 件",
     "customerDetail.interactions.empty": "接点履歴がありません",
+    "customerDetail.interaction.type.comment": "コメント",
+    "customerDetail.interaction.type.reply_auto": "AI自動返信",
+    "customerDetail.interaction.type.reply_manual": "手動返信",
+    "customerDetail.interaction.type.like": "いいね",
+    "customerDetail.interaction.type.save": "保存",
 
     // 設定
     "settings.title": "アカウント設定",
@@ -316,6 +321,106 @@ const dict: Record<Locale, Record<string, string>> = {
     "footer.privacy": "プライバシーポリシー",
     "footer.terms": "利用規約",
     "footer.support": "サポート",
+
+    // Support ページ
+    "support.title": "サポート",
+    "support.subtitle": "ご質問・不具合報告はこちら",
+    "support.back": "戻る",
+    "support.faq.title": "よくある質問",
+    "support.faq.q1":
+      "Instagram アカウントが接続できない → Facebook ビジネスアカウントとの紐付けをご確認ください",
+    "support.faq.q2":
+      "TikTok のデータが反映されない → 接続後24時間お待ちください",
+    "support.faq.q3":
+      "AI 返信案が生成されない → アカウント設定で言語と Claude API キーをご確認ください",
+    "support.contact.title": "お問い合わせ",
+    "support.contact.desc": "ご質問は下記までメールでご連絡ください:",
+    "support.contact.operator": "運営",
+
+    // Signup(=招待制案内)
+    "signup.title": "招待制サービス",
+    "signup.intro.line1": "Karteia は招待制のサービスです。",
+    "signup.intro.line2": "お客様アカウントは管理者から発行されます。",
+    "signup.contact": "ご利用希望の方は弊社営業担当までお問い合わせください。",
+    "signup.backToLogin": "ログイン画面へ戻る",
+    "signup.haveAccount": "既にアカウントをお持ちですか?",
+
+    // Forgot password
+    "forgot.title": "パスワードをお忘れですか?",
+    "forgot.subtitle": "登録メールアドレスにリセット用リンクを送信します",
+    "forgot.submit": "リセットリンクを送る",
+    "forgot.submitting": "送信中...",
+    "forgot.success":
+      "{email} にメールを送信しました。受信ボックスをご確認ください(=届かない場合は迷惑メールフォルダもご確認ください)。",
+    "forgot.err.notConfigured":
+      "認証サーバーに接続できません。サポートまでご連絡ください。",
+    "forgot.backToLogin": "ログインに戻る",
+
+    // Portal-Helix(=管理者ログイン)
+    "adminLogin.title": "Karteia 管理者ポータル",
+    "adminLogin.subtitle": "管理者専用です。一般のお客様は通常ログインをご利用ください。",
+    "adminLogin.submit": "管理者ログイン",
+    "adminLogin.submitting": "ログイン中...",
+    "adminLogin.err.required": "メールアドレスとパスワードを入力してください",
+    "adminLogin.err.adminOnly": "このページは管理者専用です",
+    "adminLogin.err.failed": "ログインに失敗しました",
+    "adminLogin.notice":
+      "このページは管理者専用です。一般のお客様は",
+    "adminLogin.customerLogin": "通常ログイン",
+    "adminLogin.noticeTail": "をご利用ください。",
+
+    // Admin ページ
+    "admin.title": "管理ポータル",
+    "admin.loggedInAs": "{email} としてログイン中",
+    "admin.refresh": "更新",
+    "admin.stats.total": "お客様総数",
+    "admin.stats.active30d": "アクティブ(30日内ログイン)",
+    "admin.stats.suspended": "停止中",
+    "admin.search": "会社名・IDで検索...",
+    "admin.newCustomer": "新規お客様を発行",
+    "admin.table.col.name": "お客様名",
+    "admin.table.col.status": "状態",
+    "admin.table.col.registered": "登録日",
+    "admin.table.col.lastLogin": "最終LG",
+    "admin.table.col.logins30d": "30日LG",
+    "admin.table.col.days": "経過日数",
+    "admin.table.col.actions": "操作",
+    "admin.loading": "読込中...",
+    "admin.empty":
+      "お客様がいません。「新規お客様を発行」から追加してください。",
+    "admin.row.suspended": "停止中",
+    "admin.row.active": "運用中",
+    "admin.row.neverLogin": "未ログイン",
+    "admin.row.logins": "{n}回",
+    "admin.row.days": "{n}日",
+    "admin.row.titleResume": "再開",
+    "admin.row.titleSuspend": "停止",
+    "admin.row.titleResetPassword": "パスワード再発行",
+    "admin.cred.issued": "発行完了",
+    "admin.cred.warning":
+      "⚠️ パスワードはこの画面でしか表示されません。お客様に配布する前に必ずコピーしてください。",
+    "admin.cred.copyAll": "配布用テキストをコピー",
+    "admin.cred.close": "閉じる",
+    "admin.modal.title": "新規お客様を発行",
+    "admin.modal.companyLabel": "お客様の会社名",
+    "admin.modal.companyPlaceholder": "株式会社○○",
+    "admin.modal.emailLabel": "メールアドレス",
+    "admin.modal.emailPlaceholder": "customer@example.com",
+    "admin.modal.emailHelp":
+      "パスワードは自動生成され、発行後一度だけ表示されます",
+    "admin.modal.submit": "発行する",
+    "admin.modal.submitting": "発行中...",
+    "admin.modal.cancel": "キャンセル",
+    "admin.confirmResetPassword": "{email} のパスワードを再発行しますか?",
+    "admin.toast.fetchFail": "取得失敗",
+    "admin.toast.created": "お客様アカウントを発行しました",
+    "admin.toast.createFail": "作成失敗",
+    "admin.toast.suspended": "停止しました",
+    "admin.toast.resumed": "再開しました",
+    "admin.toast.opFail": "操作失敗",
+    "admin.toast.resetFail": "失敗",
+    "admin.toast.copied": "クリップボードにコピーしました",
+    "admin.tableCaption": "お客様一覧",
   },
   en: {
     // Navigation
@@ -517,6 +622,11 @@ const dict: Record<Locale, Record<string, string>> = {
     "customerDetail.interactions.title": "Interaction History (Timeline)",
     "customerDetail.interactions.count": "{n}",
     "customerDetail.interactions.empty": "No interaction history",
+    "customerDetail.interaction.type.comment": "Comment",
+    "customerDetail.interaction.type.reply_auto": "AI Reply",
+    "customerDetail.interaction.type.reply_manual": "Manual Reply",
+    "customerDetail.interaction.type.like": "Like",
+    "customerDetail.interaction.type.save": "Save",
 
     // Settings
     "settings.title": "Account Settings",
@@ -622,6 +732,108 @@ const dict: Record<Locale, Record<string, string>> = {
     "footer.privacy": "Privacy Policy",
     "footer.terms": "Terms",
     "footer.support": "Support",
+
+    // Support page
+    "support.title": "Support",
+    "support.subtitle": "For questions or bug reports",
+    "support.back": "Back",
+    "support.faq.title": "Frequently Asked Questions",
+    "support.faq.q1":
+      "Cannot connect Instagram → Check the Facebook Business Account link",
+    "support.faq.q2":
+      "TikTok data is not showing → Please wait up to 24 hours after connecting",
+    "support.faq.q3":
+      "AI replies are not generated → Verify language and Claude API key in Account Settings",
+    "support.contact.title": "Contact Us",
+    "support.contact.desc": "For questions, please email us at:",
+    "support.contact.operator": "Operator",
+
+    // Signup
+    "signup.title": "Invite-only Service",
+    "signup.intro.line1": "Karteia is an invite-only service.",
+    "signup.intro.line2": "Customer accounts are issued by the administrator.",
+    "signup.contact":
+      "If you'd like access, please contact our sales team.",
+    "signup.backToLogin": "Back to Login",
+    "signup.haveAccount": "Already have an account?",
+
+    // Forgot password
+    "forgot.title": "Forgot your password?",
+    "forgot.subtitle": "We'll send a reset link to your registered email",
+    "forgot.submit": "Send reset link",
+    "forgot.submitting": "Sending...",
+    "forgot.success":
+      "If an account with {email} exists, a reset link has been sent. Please check your inbox (also check your spam folder).",
+    "forgot.err.notConfigured":
+      "Authentication server is not reachable. Please contact support.",
+    "forgot.backToLogin": "Back to login",
+
+    // Admin Portal Login
+    "adminLogin.title": "Karteia Admin Portal",
+    "adminLogin.subtitle":
+      "Admin only. Customers please use the regular login.",
+    "adminLogin.submit": "Admin Login",
+    "adminLogin.submitting": "Signing in...",
+    "adminLogin.err.required": "Please enter your email and password",
+    "adminLogin.err.adminOnly": "This portal is for administrators only",
+    "adminLogin.err.failed": "Sign-in failed",
+    "adminLogin.notice":
+      "This portal is for administrators only. Customers please use the",
+    "adminLogin.customerLogin": "regular login",
+    "adminLogin.noticeTail": ".",
+
+    // Admin page
+    "admin.title": "Admin Portal",
+    "admin.loggedInAs": "Signed in as {email}",
+    "admin.refresh": "Refresh",
+    "admin.stats.total": "Total Customers",
+    "admin.stats.active30d": "Active (30-day login)",
+    "admin.stats.suspended": "Suspended",
+    "admin.search": "Search by company or ID...",
+    "admin.newCustomer": "Issue New Customer",
+    "admin.table.col.name": "Customer",
+    "admin.table.col.status": "Status",
+    "admin.table.col.registered": "Registered",
+    "admin.table.col.lastLogin": "Last Login",
+    "admin.table.col.logins30d": "30-day Logins",
+    "admin.table.col.days": "Days Since",
+    "admin.table.col.actions": "Actions",
+    "admin.loading": "Loading...",
+    "admin.empty":
+      "No customers yet. Click \"Issue New Customer\" to add one.",
+    "admin.row.suspended": "Suspended",
+    "admin.row.active": "Active",
+    "admin.row.neverLogin": "Never logged in",
+    "admin.row.logins": "{n}",
+    "admin.row.days": "{n} days",
+    "admin.row.titleResume": "Resume",
+    "admin.row.titleSuspend": "Suspend",
+    "admin.row.titleResetPassword": "Reset password",
+    "admin.cred.issued": "Issued",
+    "admin.cred.warning":
+      "⚠️ The password is shown only on this screen. Please copy it before sharing with the customer.",
+    "admin.cred.copyAll": "Copy distribution text",
+    "admin.cred.close": "Close",
+    "admin.modal.title": "Issue New Customer",
+    "admin.modal.companyLabel": "Customer Company Name",
+    "admin.modal.companyPlaceholder": "Acme Inc.",
+    "admin.modal.emailLabel": "Email Address",
+    "admin.modal.emailPlaceholder": "customer@example.com",
+    "admin.modal.emailHelp":
+      "A password will be auto-generated and shown once.",
+    "admin.modal.submit": "Issue",
+    "admin.modal.submitting": "Issuing...",
+    "admin.modal.cancel": "Cancel",
+    "admin.confirmResetPassword": "Reset the password for {email}?",
+    "admin.toast.fetchFail": "Failed to load",
+    "admin.toast.created": "Customer account issued",
+    "admin.toast.createFail": "Failed to create",
+    "admin.toast.suspended": "Suspended",
+    "admin.toast.resumed": "Resumed",
+    "admin.toast.opFail": "Operation failed",
+    "admin.toast.resetFail": "Failed",
+    "admin.toast.copied": "Copied to clipboard",
+    "admin.tableCaption": "Customer list",
   },
 };
 

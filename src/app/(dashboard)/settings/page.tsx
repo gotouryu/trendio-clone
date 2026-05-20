@@ -208,25 +208,25 @@ export default function SettingsPage() {
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        アカウント設定
+        {t("settings.title")}
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6">
-        SNSアカウントの接続、表示、自動応答ルールを管理する
+        {t("settings.subtitle")}
       </p>
 
       {/* Theme */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          テーマ
+          {t("settings.theme")}
         </h2>
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <div className="font-medium text-gray-900 dark:text-gray-100">
-                外観モード
+                {t("settings.theme.appearance")}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                ライト・ダーク・システム設定から選択
+                {t("settings.theme.appearance.sub")}
               </div>
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -256,22 +256,22 @@ export default function SettingsPage() {
       {/* Language */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          言語
+          {t("settings.language")}
         </h2>
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="font-medium text-gray-900 dark:text-gray-100">
-              表示言語
+              {t("settings.language.display")}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              アプリの表示言語を選択してください
+              {t("settings.language.sub")}
             </div>
           </div>
           <select
             value={profile.language}
             onChange={(e) => changeLanguage(e.target.value as Locale)}
             className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            aria-label="言語を選択"
+            aria-label={t("settings.language")}
           >
             <option value="ja">{t("settings.language.ja")}</option>
             <option value="en">{t("settings.language.en")}</option>
@@ -282,13 +282,13 @@ export default function SettingsPage() {
       {/* Company Info */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          会社情報
+          {t("settings.company")}
         </h2>
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                会社・組織名
+                {t("settings.company.name")}
               </div>
               {editing ? (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -302,7 +302,7 @@ export default function SettingsPage() {
                     onClick={saveCompany}
                     className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm"
                   >
-                    保存
+                    {t("common.save")}
                   </button>
                   <button
                     onClick={() => {
@@ -311,7 +311,7 @@ export default function SettingsPage() {
                     }}
                     className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200"
                   >
-                    キャンセル
+                    {t("common.cancel")}
                   </button>
                 </div>
               ) : (
@@ -322,17 +322,17 @@ export default function SettingsPage() {
                 </div>
               )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                サイドバーに表示される名前です
+                {t("settings.company.help")}
               </div>
             </div>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700"
-                aria-label="会社情報を編集"
+                aria-label={t("settings.company.editAria")}
               >
                 <Pencil className="w-3.5 h-3.5" />
-                編集
+                {t("common.edit")}
               </button>
             )}
           </div>
@@ -342,7 +342,7 @@ export default function SettingsPage() {
       {/* SNS Connections */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          SNSアカウント接続
+          {t("settings.snsConnections")}
         </h2>
 
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 mb-3">
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  同期
+                  {t("common.sync")}
                 </button>
                 <button
                   onClick={() => disconnectSns("instagram")}

@@ -159,7 +159,7 @@ export default function DashboardPage() {
       filteredFollowerTrend,
     );
     downloadFile(`customercare-dashboard-${dateStamp()}.csv`, csv, "text/csv");
-    toast("CSVをダウンロードしました", "success");
+    toast(t("dashboard.toast.csv"), "success");
     setExportOpen(false);
   }
 
@@ -174,7 +174,7 @@ export default function DashboardPage() {
       json,
       "application/json",
     );
-    toast("JSONをダウンロードしました", "success");
+    toast(t("dashboard.toast.json"), "success");
     setExportOpen(false);
   }
 
@@ -230,7 +230,7 @@ export default function DashboardPage() {
     );
 
     doc.save(`customercare-report-${dateStamp()}.pdf`);
-    toast("PDFを生成しました", "success");
+    toast(t("dashboard.toast.pdf"), "success");
   }
 
   // Drag-and-drop reorder

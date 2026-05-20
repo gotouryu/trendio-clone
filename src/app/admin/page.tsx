@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getSession, isAdmin, logout } from "@/lib/authClient";
 import { useToast } from "@/components/providers/ToasterProvider";
+import { useI18n } from "@/lib/i18n";
 
 type Customer = {
   id: string;
@@ -32,6 +33,7 @@ type Customer = {
 export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -54,7 +56,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(data.error);
       setCustomers(data.customers ?? []);
     } catch (e) {
-      toast(e instanceof Error ? e.message : "取得失敗", "error");
+      toast(e instanceof Error ? e.message : t("admin.toast.fetchFail"), "error");
     } finally {
       setLoading(false);
     }
@@ -73,13 +75,13 @@ export default function AdminPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      toast(data.error ?? "作成失敗", "error");
+      toast(data.error ?? t("admin.toast.createFail"), "error");
       return;
     }
     setNewCred({ email: data.email, password: data.initialPassword });
     setShowAdd(false);
     fetchCustomers();
-    toast("お客様アカウントを発行しました", "success");
+    toast(t("admin.toast.created"), "success");
   }
 
   async function suspendResume(id: string, current: string) {
@@ -90,15 +92,20 @@ export default function AdminPage() {
       body: JSON.stringify({ action }),
     });
     if (!res.ok) {
-      toast("操作失敗", "error");
+      toast(t("admin.toast.opFail"), "error");
       return;
     }
-    toast(action === "suspend" ? "停止しました" : "再開しました", "success");
+    toast(
+      action === "suspend"
+        ? t("admin.toast.suspended")
+        : t("admin.toast.resumed"),
+      "success",
+    );
     fetchCustomers();
   }
 
   async function resetPassword(id: string, email: string) {
-    if (!confirm(`${email} のパスワードを再発行しますか?`)) return;
+    if (!confirm(t("admin.confirmResetPassword", { email }))) return;
     const res = await fetch(`/api/admin/customers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -106,7 +113,7 @@ export default function AdminPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      toast(data.error ?? "失敗", "error");
+      toast(data.error ?? t("admin.toast.resetFail"), "error");
       return;
     }
     setNewCred({ email, password: data.newPassword });
@@ -114,19 +121,29 @@ export default function AdminPage() {
 
   function copyAll(creds: { email: string; password: string }) {
     navigator.clipboard.writeText(
-      `Karteia 管理画面ログイン情報\nURL: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nEmail: ${creds.email}\nPassword: ${creds.password}`,
+      `Karteia Admin Login\nURL: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nEmail: ${creds.email}\nPassword: ${creds.password}`,
     );
-    toast("クリップボードにコピーしました", "success");
+    toast(t("admin.toast.copied"), "success");
+    // 60秒後にクリップボード自動クリア(=セキュリティ強化)
+    setTimeout(() => {
+      try {
+        navigator.clipboard.writeText("");
+      } catch {
+        // ignore
+      }
+    }, 60_000);
   }
 
+  const searchLower = search.toLowerCase();
   const filtered = customers.filter(
     (c) =>
       !search ||
-      c.company_name.includes(search) ||
-      c.id.includes(search),
+      c.company_name.toLowerCase().includes(searchLower) ||
+      c.id.toLowerCase().includes(searchLower),
   );
 
   const session = typeof window !== "undefined" ? getSession() : null;
+  const dateLocale = locale === "en" ? "en-US" : "ja-JP";
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
@@ -134,10 +151,10 @@ export default function AdminPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            管理ポータル
+            {t("admin.title")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {session?.email} としてログイン中
+            {t("admin.loggedInAs", { email: session?.email ?? "" })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -146,23 +163,23 @@ export default function AdminPage() {
             className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <RefreshCw className="w-4 h-4" />
-            更新
+            {t("admin.refresh")}
           </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <LogOut className="w-4 h-4" />
-            ログアウト
+            {t("nav.logout")}
           </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={<Users className="w-5 h-5 text-emerald-500" />} label="お客様総数" value={customers.length} />
-        <StatCard icon={<Activity className="w-5 h-5 text-blue-500" />} label="アクティブ(30日内ログイン)" value={customers.filter(c => c.logins_30d > 0).length} />
-        <StatCard icon={<Clock className="w-5 h-5 text-amber-500" />} label="停止中" value={customers.filter(c => c.status === "suspended").length} />
+        <StatCard icon={<Users className="w-5 h-5 text-emerald-500" />} label={t("admin.stats.total")} value={customers.length} />
+        <StatCard icon={<Activity className="w-5 h-5 text-blue-500" />} label={t("admin.stats.active30d")} value={customers.filter(c => c.logins_30d > 0).length} />
+        <StatCard icon={<Clock className="w-5 h-5 text-amber-500" />} label={t("admin.stats.suspended")} value={customers.filter(c => c.status === "suspended").length} />
       </div>
 
       {/* Search + Add */}
@@ -172,8 +189,9 @@ export default function AdminPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="会社名・IDで検索..."
+            placeholder={t("admin.search")}
             className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            aria-label={t("common.search")}
           />
         </div>
         <button
@@ -181,7 +199,7 @@ export default function AdminPage() {
           className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          新規お客様を発行
+          {t("admin.newCustomer")}
         </button>
       </div>
 
@@ -189,28 +207,29 @@ export default function AdminPage() {
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">{t("admin.tableCaption")}</caption>
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-xs uppercase">
-                <th className="text-left px-4 py-3">お客様名</th>
-                <th className="text-left px-4 py-3">状態</th>
-                <th className="text-left px-4 py-3">登録日</th>
-                <th className="text-left px-4 py-3">最終LG</th>
-                <th className="text-left px-4 py-3">30日LG</th>
-                <th className="text-left px-4 py-3">経過日数</th>
-                <th className="text-right px-4 py-3">操作</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.name")}</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.status")}</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.registered")}</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.lastLogin")}</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.logins30d")}</th>
+                <th scope="col" className="text-left px-4 py-3">{t("admin.table.col.days")}</th>
+                <th scope="col" className="text-right px-4 py-3">{t("admin.table.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-400">
-                    読込中...
+                    {t("admin.loading")}
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
-                    お客様がいません。「新規お客様を発行」から追加してください。
+                    {t("admin.empty")}
                   </td>
                 </tr>
               ) : (
@@ -219,28 +238,30 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{c.company_name}</td>
                     <td className="px-4 py-3">
                       {c.status === "suspended" ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300">停止中</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300">{t("admin.row.suspended")}</span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">運用中</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">{t("admin.row.active")}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{new Date(c.registered_at).toLocaleDateString("ja-JP")}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.last_login_at ? new Date(c.last_login_at).toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" }) : "未ログイン"}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.logins_30d}回</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.days_since_register}日</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{new Date(c.registered_at).toLocaleDateString(dateLocale)}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{c.last_login_at ? new Date(c.last_login_at).toLocaleString(dateLocale, { dateStyle: "short", timeStyle: "short" }) : t("admin.row.neverLogin")}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t("admin.row.logins", { n: c.logins_30d })}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{t("admin.row.days", { n: c.days_since_register })}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => suspendResume(c.id, c.status)}
                           className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${c.status === "suspended" ? "text-emerald-500" : "text-amber-500"}`}
-                          title={c.status === "suspended" ? "再開" : "停止"}
+                          title={c.status === "suspended" ? t("admin.row.titleResume") : t("admin.row.titleSuspend")}
+                          aria-label={c.status === "suspended" ? t("admin.row.titleResume") : t("admin.row.titleSuspend")}
                         >
                           {c.status === "suspended" ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => resetPassword(c.id, c.company_name)}
                           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-500"
-                          title="パスワード再発行"
+                          title={t("admin.row.titleResetPassword")}
+                          aria-label={t("admin.row.titleResetPassword")}
                         >
                           <KeyRound className="w-4 h-4" />
                         </button>
@@ -258,48 +279,7 @@ export default function AdminPage() {
       {showAdd && <AddCustomerModal onClose={() => setShowAdd(false)} onCreate={createCustomer} />}
 
       {/* New credentials modal (shown once) */}
-      {newCred && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                発行完了
-              </h3>
-            </div>
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-800 dark:text-amber-200 mb-4">
-              ⚠️ パスワードはこの画面でしか表示されません。お客様に配布する前に必ずコピーしてください。
-            </div>
-            <div className="space-y-3 mb-5">
-              <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</div>
-                <div className="font-mono text-sm bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">{newCred.email}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Password</div>
-                <div className="font-mono text-sm bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">{newCred.password}</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => copyAll(newCred)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium"
-              >
-                <Copy className="w-4 h-4" />
-                配布用テキストをコピー
-              </button>
-              <button
-                onClick={() => setNewCred(null)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm"
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {newCred && <CredentialsModal cred={newCred} onClose={() => setNewCred(null)} onCopy={copyAll} />}
     </div>
   );
 }
@@ -326,6 +306,78 @@ function StatCard({
   );
 }
 
+function CredentialsModal({
+  cred,
+  onClose,
+  onCopy,
+}: {
+  cred: { email: string; password: string };
+  onClose: () => void;
+  onCopy: (c: { email: string; password: string }) => void;
+}) {
+  const { t } = useI18n();
+  // Escape キーで閉じる
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cred-modal-title"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          </div>
+          <h3
+            id="cred-modal-title"
+            className="text-lg font-bold text-gray-900 dark:text-gray-100"
+          >
+            {t("admin.cred.issued")}
+          </h3>
+        </div>
+        <div className="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-800 dark:text-amber-200 mb-4">
+          {t("admin.cred.warning")}
+        </div>
+        <div className="space-y-3 mb-5">
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</div>
+            <div className="font-mono text-sm bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">{cred.email}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Password</div>
+            <div className="font-mono text-sm bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">{cred.password}</div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onCopy(cred)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium"
+          >
+            <Copy className="w-4 h-4" />
+            {t("admin.cred.copyAll")}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm"
+          >
+            {t("admin.cred.close")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddCustomerModal({
   onClose,
   onCreate,
@@ -333,9 +385,19 @@ function AddCustomerModal({
   onClose: () => void;
   onCreate: (email: string, companyName: string) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Escape キーで閉じる
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -348,38 +410,59 @@ function AddCustomerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-modal-title"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-          新規お客様を発行
+        <h3
+          id="add-modal-title"
+          className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4"
+        >
+          {t("admin.modal.title")}
         </h3>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              お客様の会社名
+            <label
+              htmlFor="admin-modal-company"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              {t("admin.modal.companyLabel")}
             </label>
             <input
+              id="admin-modal-company"
+              name="company"
               required
+              autoFocus
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="株式会社○○"
+              placeholder={t("admin.modal.companyPlaceholder")}
               className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              メールアドレス
+            <label
+              htmlFor="admin-modal-email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              {t("admin.modal.emailLabel")}
             </label>
             <input
+              id="admin-modal-email"
+              name="email"
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="customer@example.com"
+              placeholder={t("admin.modal.emailPlaceholder")}
               className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              パスワードは自動生成され、発行後一度だけ表示されます
+              {t("admin.modal.emailHelp")}
             </p>
           </div>
           <div className="flex gap-2 justify-end pt-2">
@@ -388,14 +471,14 @@ function AddCustomerModal({
               onClick={onClose}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm"
             >
-              キャンセル
+              {t("admin.modal.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white rounded-lg text-sm font-medium"
             >
-              {submitting ? "発行中..." : "発行する"}
+              {submitting ? t("admin.modal.submitting") : t("admin.modal.submit")}
             </button>
           </div>
         </form>
@@ -403,4 +486,3 @@ function AddCustomerModal({
     </div>
   );
 }
-
