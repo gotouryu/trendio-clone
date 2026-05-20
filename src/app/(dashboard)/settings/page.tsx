@@ -511,34 +511,40 @@ export default function SettingsPage() {
                   </span>
                 </label>
                 <div className="flex items-center gap-2">
+                  {/* Phase 4 修正:onChange は local 更新のみ、onBlur で save
+                      (=旧:onChange ごとに PUT で WAL 圧迫していた問題、Phase 2-E H6) */}
                   <input
                     type="time"
-                    value={arSettings.businessHours.start}
-                    onChange={(e) =>
-                      saveAutoReply({
-                        ...arSettings,
-                        businessHours: {
-                          ...arSettings.businessHours,
-                          start: e.target.value,
-                        },
-                      })
-                    }
+                    defaultValue={arSettings.businessHours.start}
+                    onBlur={(e) => {
+                      if (e.target.value !== arSettings.businessHours.start) {
+                        saveAutoReply({
+                          ...arSettings,
+                          businessHours: {
+                            ...arSettings.businessHours,
+                            start: e.target.value,
+                          },
+                        });
+                      }
+                    }}
                     className="px-2 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                     aria-label={t("settings.businessHours.startAria")}
                   />
                   <span className="text-gray-500">–</span>
                   <input
                     type="time"
-                    value={arSettings.businessHours.end}
-                    onChange={(e) =>
-                      saveAutoReply({
-                        ...arSettings,
-                        businessHours: {
-                          ...arSettings.businessHours,
-                          end: e.target.value,
-                        },
-                      })
-                    }
+                    defaultValue={arSettings.businessHours.end}
+                    onBlur={(e) => {
+                      if (e.target.value !== arSettings.businessHours.end) {
+                        saveAutoReply({
+                          ...arSettings,
+                          businessHours: {
+                            ...arSettings.businessHours,
+                            end: e.target.value,
+                          },
+                        });
+                      }
+                    }}
                     className="px-2 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                     aria-label={t("settings.businessHours.endAria")}
                   />
