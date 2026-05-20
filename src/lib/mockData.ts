@@ -69,15 +69,16 @@ export const mockGenderByPeriod: GenderByPeriod[] = [
   { ageGroup: "35+", male: 45, female: 47, other: 8 },
 ];
 
+// Phase 4 修正:i18n key 形式で保存して FollowerRegionChart 側で表示時に翻訳
 export const mockRegions: RegionItem[] = [
-  { name: "東京都", percentage: 28.5, count: 139 },
-  { name: "大阪府", percentage: 17.3, count: 84 },
-  { name: "神奈川県", percentage: 11.2, count: 55 },
-  { name: "愛知県", percentage: 8.6, count: 42 },
-  { name: "京都府", percentage: 6.4, count: 31 },
-  { name: "兵庫県", percentage: 5.5, count: 27 },
-  { name: "福岡県", percentage: 4.9, count: 24 },
-  { name: "北海道", percentage: 4.3, count: 21 },
+  { name: "region.tokyo", percentage: 28.5, count: 139 },
+  { name: "region.osaka", percentage: 17.3, count: 84 },
+  { name: "region.kanagawa", percentage: 11.2, count: 55 },
+  { name: "region.aichi", percentage: 8.6, count: 42 },
+  { name: "region.kyoto", percentage: 6.4, count: 31 },
+  { name: "region.hyogo", percentage: 5.5, count: 27 },
+  { name: "region.fukuoka", percentage: 4.9, count: 24 },
+  { name: "region.hokkaido", percentage: 4.3, count: 21 },
 ];
 
 export const mockHourlyEngagement: HourlyEngagement[] = Array.from(

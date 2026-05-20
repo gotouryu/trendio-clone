@@ -337,6 +337,16 @@ const dict: Record<Locale, Record<string, string>> = {
     "support.contact.desc": "ご質問は下記までメールでご連絡ください:",
     "support.contact.operator": "運営",
 
+    // 地域名(=都道府県、日本語ロケールはそのまま、英語ロケールで Latin 表記)
+    "region.tokyo": "東京都",
+    "region.osaka": "大阪府",
+    "region.kanagawa": "神奈川県",
+    "region.aichi": "愛知県",
+    "region.kyoto": "京都府",
+    "region.hyogo": "兵庫県",
+    "region.fukuoka": "福岡県",
+    "region.hokkaido": "北海道",
+
     // Signup(=招待制案内)
     "signup.title": "招待制サービス",
     "signup.intro.line1": "Karteia は招待制のサービスです。",
@@ -747,6 +757,16 @@ const dict: Record<Locale, Record<string, string>> = {
     "support.contact.title": "Contact Us",
     "support.contact.desc": "For questions, please email us at:",
     "support.contact.operator": "Operator",
+
+    // Region names
+    "region.tokyo": "Tokyo",
+    "region.osaka": "Osaka",
+    "region.kanagawa": "Kanagawa",
+    "region.aichi": "Aichi",
+    "region.kyoto": "Kyoto",
+    "region.hyogo": "Hyogo",
+    "region.fukuoka": "Fukuoka",
+    "region.hokkaido": "Hokkaido",
 
     // Signup
     "signup.title": "Invite-only Service",
