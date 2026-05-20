@@ -174,14 +174,14 @@ export default function CommentsPage() {
     );
     setReplyingTo(null);
     setReplyText("");
-    toast("返信を送信しました", "success");
+    toast(t("comments.toast.replySent"), "success");
   }
 
   function handleArchive(id: string) {
     setComments((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: "archived" as const } : c)),
     );
-    toast("アーカイブしました", "success");
+    toast(t("comments.toast.archived"), "success");
   }
 
   function toggleSelect(id: string) {
@@ -200,7 +200,7 @@ export default function CommentsPage() {
         ids.includes(c.id) ? { ...c, status: "archived" as const } : c,
       ),
     );
-    toast(`${ids.length} 件をアーカイブしました`, "success");
+    toast(t("comments.toast.bulkArchived", { n: ids.length }), "success");
     setSelected(new Set());
   }
 
@@ -226,13 +226,13 @@ export default function CommentsPage() {
         setReplyText(j.reply ?? "");
         toast(
           j.generated
-            ? "AIが返信案を生成しました"
-            : "テンプレ応答を返しました(Claude APIキー未設定)",
+            ? t("comments.toast.aiGenerated")
+            : t("comments.toast.aiGeneratedFallback"),
           "success",
         );
       } catch (err) {
         toast(
-          err instanceof Error ? err.message : "AI返信生成に失敗",
+          err instanceof Error ? err.message : t("comments.toast.aiFailed"),
           "error",
         );
       } finally {
@@ -257,18 +257,14 @@ export default function CommentsPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "切替失敗");
       toast(
-        next
-          ? "自動応答モードを ON にしました(無人受付開始)"
-          : "自動応答モードを OFF にしました",
+        next ? t("comments.toast.autoOn") : t("comments.toast.autoOff"),
         next ? "success" : "info",
       );
     } catch (err) {
       // 失敗したらUIをロールバック
       setAutoReplyEnabled(!next);
       toast(
-        err instanceof Error
-          ? err.message
-          : "自動応答モードの切替に失敗しました",
+        err instanceof Error ? err.message : t("comments.toast.toggleFail"),
         "error",
       );
     }

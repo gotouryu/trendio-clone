@@ -112,21 +112,24 @@ export default function SettingsPage() {
   useEffect(() => {
     const connected = searchParams.get("connected");
     const err = searchParams.get("error");
-    if (connected === "instagram") toast("Instagramを接続しました", "success");
-    else if (connected === "tiktok") toast("TikTokを接続しました", "success");
+    if (connected === "instagram") toast(t("settings.toast.instagramConnected"), "success");
+    else if (connected === "tiktok") toast(t("settings.toast.tiktokConnected"), "success");
     else if (err) {
-      const msgMap: Record<string, string> = {
-        meta_not_configured: "Meta App が未設定です(.env の META_APP_ID 等を確認)",
-        tiktok_not_configured: "TikTok App が未設定です",
-        state_mismatch: "セキュリティ検証に失敗しました。もう一度お試しください",
-        token_exchange_failed: "トークン交換に失敗しました",
-        no_ig_business_account:
-          "InstagramビジネスアカウントがFacebookページに紐付いていません",
-        db_upsert_failed: "接続情報の保存に失敗しました",
-        missing_code: "認可コードが返ってきませんでした",
-        supabase_not_configured: "Supabase が未設定です",
+      const keyMap: Record<string, string> = {
+        meta_not_configured: "settings.oauth.err.metaNotConfigured",
+        tiktok_not_configured: "settings.oauth.err.tiktokNotConfigured",
+        state_mismatch: "settings.oauth.err.stateMismatch",
+        user_mismatch: "settings.oauth.err.userMismatch",
+        token_exchange_failed: "settings.oauth.err.tokenExchangeFailed",
+        no_ig_business_account: "settings.oauth.err.noIgBusinessAccount",
+        db_upsert_failed: "settings.oauth.err.dbUpsertFailed",
+        missing_code: "settings.oauth.err.missingCode",
+        supabase_not_configured: "settings.oauth.err.supabaseNotConfigured",
       };
-      toast(msgMap[err] ?? `接続エラー: ${err}`, "error");
+      toast(
+        keyMap[err] ? t(keyMap[err]) : t("settings.oauth.err.unknown"),
+        "error",
+      );
     }
     // URL をきれいにする(=リロード時に同じトーストが出続けないように)
     if (connected || err) {
@@ -146,13 +149,13 @@ export default function SettingsPage() {
       await refreshSnsAccounts();
       toast(
         platform === "instagram"
-          ? "Instagramの接続を解除しました"
-          : "TikTokの接続を解除しました",
+          ? t("settings.toast.instagramDisconnected")
+          : t("settings.toast.tiktokDisconnected"),
         "info",
       );
     } catch (e) {
       toast(
-        e instanceof Error ? e.message : "切断に失敗しました",
+        e instanceof Error ? e.message : t("settings.toast.disconnectFail"),
         "error",
       );
     }
@@ -161,23 +164,27 @@ export default function SettingsPage() {
   function saveCompany() {
     setProfile((p) => ({ ...p, companyName: editingName }));
     setEditing(false);
-    toast("会社情報を保存しました", "success");
+    toast(t("settings.toast.companyUpdated"), "success");
   }
 
   function changeLanguage(lang: Locale) {
     setProfile((p) => ({ ...p, language: lang }));
     setLocale(lang);
     toast(
-      lang === "ja" ? "言語を日本語に切り替えました" : "Language switched to English",
+      lang === "ja" ? t("settings.toast.langJa") : t("settings.toast.langEn"),
       "success",
     );
   }
 
-  function changeTheme(t: Theme) {
-    setTheme(t);
-    const label =
-      t === "light" ? "ライト" : t === "dark" ? "ダーク" : "システム";
-    toast(`テーマを${label}に切り替えました`, "success");
+  function changeTheme(th: Theme) {
+    setTheme(th);
+    const labelKey =
+      th === "light"
+        ? "settings.theme.label.light"
+        : th === "dark"
+          ? "settings.theme.label.dark"
+          : "settings.theme.label.system";
+    toast(t("settings.toast.themeChanged", { label: t(labelKey) }), "success");
   }
 
   const saveAutoReply = useCallback(
