@@ -11,6 +11,7 @@ import { hasTikTok } from "@/lib/env";
 import { fetchTikTokUserStats } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { decryptToken } from "@/lib/tokenCrypto";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,14 @@ export async function GET(req: NextRequest) {
         .eq("user_id", auth.userId)
         .eq("platform", "tiktok")
         .maybeSingle();
-      if (data) accessToken = data.access_token;
+      if (data) {
+        // H2 対応:DB に保存された access_token は暗号化済み(=enc:v1: prefix)
+        try {
+          accessToken = decryptToken(data.access_token);
+        } catch {
+          accessToken = null;
+        }
+      }
     }
   }
 

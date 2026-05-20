@@ -5,6 +5,7 @@ import { mockContentIdeas } from "@/lib/mockData";
 import type { ContentIdea } from "@/lib/types";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { assertSameOrigin } from "@/lib/csrf";
+import { consumeRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,31 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as Body;
+  // H3 対応:AI コンテンツ生成のレートリミット(=1分間 3 回、=トークン消費大)
+  const rl = await consumeRateLimit({
+    userId: auth.userId,
+    kind: "ai_content",
+    windowSec: 60,
+    maxInWindow: 3,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        error: `AI コンテンツ生成は1分に3回までです。あと ${rl.retryAfterSec} 秒お待ちください。`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      },
+    );
+  }
+
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
 
   // 入力長制限(=Claude トークン爆発防止)
   const industry = String(body.industry ?? "").slice(0, MAX_FIELD);

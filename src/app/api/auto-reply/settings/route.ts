@@ -66,7 +66,12 @@ export async function PUT(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as Partial<AutoReplySettings>;
+  let body: Partial<AutoReplySettings>;
+  try {
+    body = (await req.json()) as Partial<AutoReplySettings>;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
 
   const sb = await createSupabaseServer();
   if (!sb) {

@@ -19,7 +19,12 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as { enabled?: boolean };
+  let body: { enabled?: boolean };
+  try {
+    body = (await req.json()) as { enabled?: boolean };
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   if (typeof body.enabled !== "boolean") {
     return NextResponse.json(
       { error: "enabled (boolean) is required" },

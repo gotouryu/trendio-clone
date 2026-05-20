@@ -94,9 +94,14 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as Partial<Customer> & {
-    instagramHandle: string;
-  };
+  let body: Partial<Customer> & { instagramHandle: string };
+  try {
+    body = (await req.json()) as Partial<Customer> & {
+      instagramHandle: string;
+    };
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   if (!body.instagramHandle) {
     return NextResponse.json(
       { error: "instagramHandle required" },

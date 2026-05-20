@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as { email: string; companyName: string };
+  let body: { email: string; companyName: string };
+  try {
+    body = (await req.json()) as { email: string; companyName: string };
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   if (!body.email || !body.companyName) {
     return NextResponse.json(
       { error: "email and companyName required" },

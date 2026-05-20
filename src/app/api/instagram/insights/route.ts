@@ -13,6 +13,7 @@ import { fetchInsights, getInstagramBusinessAccountId } from "@/lib/instagram";
 import { mockKPI } from "@/lib/mockData";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { decryptToken } from "@/lib/tokenCrypto";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,13 @@ export async function GET(req: NextRequest) {
         .eq("platform", "instagram")
         .maybeSingle();
       if (data) {
-        accessToken = data.access_token;
+        // H2 対応:DB に保存された access_token は暗号化済み(=enc:v1: prefix)
+        // 復号失敗(=鍵不一致)は mock fallback に流す
+        try {
+          accessToken = decryptToken(data.access_token);
+        } catch {
+          accessToken = null;
+        }
         igUserId = data.external_account_id;
       }
     }

@@ -7,6 +7,7 @@ import type { ContentIdea } from "@/lib/types";
 import { useToast } from "@/components/providers/ToasterProvider";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useI18n } from "@/lib/i18n";
 
 type HistoryItem = {
   id: string;
@@ -43,6 +44,7 @@ function getSpeechRecognition(): SpeechRecognitionConstructor | undefined {
 
 export default function AIContentPage() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [tab, setTab] = useState<"new" | "saved" | "history">("new");
   const [industry, setIndustry] = useState("food-beverage");
   const [goal, setGoal] = useState("brand-awareness");
@@ -50,11 +52,11 @@ export default function AIContentPage() {
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState<ContentIdea[]>([]);
   const [saved, setSaved] = useLocalStorage<ContentIdea[]>(
-    "trendio-saved-content",
+    "karteia-saved-content",
     mockContentIdeas,
   );
   const [history, setHistory] = useLocalStorage<HistoryItem[]>(
-    "trendio-generation-history",
+    "karteia-generation-history",
     [],
   );
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -71,8 +73,15 @@ export default function AIContentPage() {
   }, []);
 
   async function generate() {
+    if (!industry || !goal) {
+      // T3-1: フォーム空欄チェック
+      toast(t("ai.toast.fieldRequired"), "error");
+      return;
+    }
     setGenerating(true);
     setGenerationError(null);
+    // T3-2: 生成開始通知(=AI が考えてます)
+    toast(t("ai.toast.generating"), "info");
     // log to history first
     setHistory((prev) =>
       [
@@ -100,8 +109,15 @@ export default function AIContentPage() {
       if (!res.ok) throw new Error(data.error ?? "生成に失敗しました");
       setGenerated(data.ideas);
       setUsingMock(!!data.mock);
+      // T3-3: 生成成功通知
+      toast(t("ai.toast.generated", { n: data.ideas.length }), "success");
+      // T3-4: Mock検知通知(=Claude APIキー未設定時の明示)
+      if (data.mock) toast(t("ai.toast.usingMock"), "info");
     } catch (e) {
-      setGenerationError(e instanceof Error ? e.message : "予期しないエラー");
+      const msg = e instanceof Error ? e.message : "予期しないエラー";
+      setGenerationError(msg);
+      // T3-5: 生成失敗 toast(=既存の generationError 表示と併用)
+      toast(t("ai.toast.genFailed", { msg }), "error");
     } finally {
       setGenerating(false);
     }
@@ -109,26 +125,26 @@ export default function AIContentPage() {
 
   function saveItem(idea: ContentIdea) {
     if (saved.find((s) => s.id === idea.id)) {
-      toast("既に保存されています", "info");
+      toast(t("ai.toast.alreadySaved"), "info");
       return;
     }
     setSaved((prev) => [
       { ...idea, savedAt: new Date().toISOString().slice(0, 10) },
       ...prev,
     ]);
-    toast("保存しました", "success");
+    toast(t("ai.toast.saved"), "success");
   }
 
   function deleteItem(id: string) {
     setSaved((prev) => prev.filter((s) => s.id !== id));
-    toast("削除しました", "info");
+    toast(t("ai.toast.deleted"), "info");
   }
 
   function copy(idea: ContentIdea) {
     const text = `${idea.title}\n\nフック: ${idea.hook}\n\n台本:\n${idea.script}\n\nハッシュタグ: ${idea.hashtags.map((h) => `#${h}`).join(" ")}`;
     navigator.clipboard.writeText(text);
     setCopiedId(idea.id);
-    toast("コピーしました", "success");
+    toast(t("ai.toast.copied"), "success");
     setTimeout(() => setCopiedId(null), 1500);
   }
 
@@ -137,17 +153,23 @@ export default function AIContentPage() {
     setGoal(item.goal);
     setExtra(item.extra);
     setTab("new");
-    toast("フォームに再入力しました", "info");
+    toast(t("ai.toast.refilled"), "info");
   }
 
   function clearHistory() {
+    const n = history.length;
     setHistory([]);
-    toast("履歴を削除しました", "info");
+    // T3-6: 件数付き履歴削除通知(=旧:固定文言)
+    toast(t("ai.toast.historyClearedN", { n }), "info");
   }
 
   function startListening() {
     const Ctor = getSpeechRecognition();
-    if (!Ctor) return;
+    if (!Ctor) {
+      // T3-7: 音声入力非対応ブラウザの明示通知
+      toast(t("ai.toast.voiceUnsupported"), "info");
+      return;
+    }
     const rec = new Ctor();
     rec.lang = "ja-JP";
     rec.continuous = false;
@@ -163,15 +185,17 @@ export default function AIContentPage() {
     };
     rec.onend = () => {
       setListening(false);
-      toast("音声入力完了", "success");
+      toast(t("ai.toast.voiceDone"), "success");
     };
     rec.onerror = () => {
       setListening(false);
+      // T3-8: 音声入力エラー通知(=旧:無音で listening=false にしてた)
+      toast(t("ai.toast.voiceError"), "error");
     };
     rec.start();
     recRef.current = rec;
     setListening(true);
-    toast("録音中...", "info");
+    toast(t("ai.toast.recording"), "info");
   }
 
   function stopListening() {

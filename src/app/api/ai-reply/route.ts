@@ -14,6 +14,7 @@ import { hasAnthropic } from "@/lib/env";
 import { runClaude } from "@/lib/claudeClient";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { assertSameOrigin } from "@/lib/csrf";
+import { consumeRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,31 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as Body;
+  // H3 対応:AI 返信案生成のレートリミット(=1分間 5 回)
+  const rl = await consumeRateLimit({
+    userId: auth.userId,
+    kind: "ai_reply",
+    windowSec: 60,
+    maxInWindow: 5,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        error: `AI 返信案の生成は1分に5回までです。あと ${rl.retryAfterSec} 秒お待ちください。`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      },
+    );
+  }
+
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   if (!body.commentText || typeof body.commentText !== "string") {
     return NextResponse.json(
       { error: "commentText is required" },

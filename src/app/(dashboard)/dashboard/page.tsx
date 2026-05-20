@@ -192,6 +192,22 @@ export default function DashboardPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMd, setReportMd] = useState<string>("");
   const [reportLoading, setReportLoading] = useState(false);
+
+  // T5 対応:AI レポートをブラウザ印刷経由で日本語フォント完全対応 PDF として保存
+  // jsPDF は日本語フォント埋め込みに外部TTFが必要なため、ブラウザ標準の印刷機能を使う。
+  function printReport() {
+    if (!reportMd) return;
+    const html = document.documentElement;
+    html.classList.add("print-mode-report");
+    // 印刷完了後にクラスを外す
+    const cleanup = () => {
+      html.classList.remove("print-mode-report");
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    // setTimeout で次フレームに印刷を回し、クラス適用を反映
+    setTimeout(() => window.print(), 30);
+  }
   async function generateReport(platform: "instagram" | "tiktok") {
     setReportLoading(true);
     setReportOpen(true);
@@ -697,7 +713,7 @@ export default function DashboardPage() {
       {/* AI Report Modal (=Phase 3 Wave-D Critical C-5) */}
       {reportOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          className="print-report-area-wrapper fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="report-modal-title"
@@ -706,24 +722,36 @@ export default function DashboardPage() {
           }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] flex flex-col">
-            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between print-hide">
               <h3
                 id="report-modal-title"
                 className="text-lg font-bold text-gray-900 dark:text-gray-100"
               >
                 {t("dashboard.whitepaper")}
               </h3>
-              <button
-                onClick={() => setReportOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
-                aria-label={t("common.cancel")}
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                {/* T5 対応:日本語完全対応の PDF をブラウザ印刷経由で保存 */}
+                <button
+                  onClick={printReport}
+                  disabled={reportLoading || !reportMd}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white rounded-lg text-xs font-medium"
+                  title={t("dashboard.report.printHint")}
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  {t("dashboard.report.printPdf")}
+                </button>
+                <button
+                  onClick={() => setReportOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
+                  aria-label={t("common.cancel")}
+                >
+                  ×
+                </button>
+              </div>
             </div>
             <div className="p-5 overflow-y-auto flex-1">
               {reportLoading ? (
-                <div className="flex items-center justify-center py-12 text-gray-500">
+                <div className="flex items-center justify-center py-12 text-gray-500 print-hide">
                   {t("common.loading")}
                 </div>
               ) : (

@@ -86,6 +86,8 @@ const dict: Record<Locale, Record<string, string>> = {
       "InstagramまたはTikTokを選択すると、AIが顧客理解レポートを自動生成します。",
     "dashboard.report.saved": "保存済み({n})",
     "dashboard.report.pdfSave": "PDFで保存",
+    "dashboard.report.printPdf": "日本語PDFで保存",
+    "dashboard.report.printHint": "ブラウザの印刷機能で日本語フォント完全対応のPDFを保存",
     "dashboard.postTime.optimal": "⌚ 最適時刻:17:00",
     "dashboard.postTime.peak":
       "17:00 · 08:00 · 03:00 の顧客接点が最も多い",
@@ -307,8 +309,17 @@ const dict: Record<Locale, Record<string, string>> = {
     "ai.toast.copied": "コピーしました",
     "ai.toast.refilled": "フォームに再入力しました",
     "ai.toast.historyCleared": "履歴を削除しました",
+    "ai.toast.historyClearedN": "{n}件の履歴を削除しました",
     "ai.toast.voiceDone": "音声入力完了",
     "ai.toast.recording": "録音中...",
+    "ai.toast.generated": "{n}件のアイデアを生成しました",
+    "ai.toast.genFailed": "生成に失敗しました:{msg}",
+    "ai.toast.voiceError": "音声入力でエラーが発生しました",
+    "ai.toast.voiceUnsupported": "音声入力はChromeで利用できます",
+    "ai.toast.usingMock": "Mock応答です(Claude APIキー未設定)",
+    "ai.toast.fieldRequired": "業界と目的を選択してください",
+    "ai.toast.generating": "AI が考えています...",
+    "ai.toast.tabSwitched": "{label}タブに切り替えました",
     "settings.sns.tips.ig":
       "InstagramはFacebookビジネスアカウントと連携している必要があります",
     "settings.sns.tips.tt":
@@ -576,6 +587,8 @@ const dict: Record<Locale, Record<string, string>> = {
       "Select Instagram or TikTok and the AI will draft a customer understanding report.",
     "dashboard.report.saved": "Saved ({n})",
     "dashboard.report.pdfSave": "Save as PDF",
+    "dashboard.report.printPdf": "Save PDF (full Unicode)",
+    "dashboard.report.printHint": "Save the report as PDF via browser print (full Unicode font support)",
     "dashboard.postTime.optimal": "⌚ Best time: 17:00",
     "dashboard.postTime.peak":
       "Peak interactions at 17:00, 08:00, 03:00",
@@ -804,8 +817,17 @@ const dict: Record<Locale, Record<string, string>> = {
     "ai.toast.copied": "Copied",
     "ai.toast.refilled": "Refilled form",
     "ai.toast.historyCleared": "History cleared",
+    "ai.toast.historyClearedN": "Cleared {n} history items",
     "ai.toast.voiceDone": "Voice input done",
     "ai.toast.recording": "Recording...",
+    "ai.toast.generated": "Generated {n} ideas",
+    "ai.toast.genFailed": "Generation failed: {msg}",
+    "ai.toast.voiceError": "Voice input error",
+    "ai.toast.voiceUnsupported": "Voice input requires Chrome",
+    "ai.toast.usingMock": "Mock response (Claude API key not configured)",
+    "ai.toast.fieldRequired": "Please select industry and goal",
+    "ai.toast.generating": "AI is thinking...",
+    "ai.toast.tabSwitched": "Switched to {label} tab",
     "settings.sns.tips.ig":
       "Instagram must be linked to a Facebook Business Account",
     "settings.sns.tips.tt":

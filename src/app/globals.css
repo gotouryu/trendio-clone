@@ -126,6 +126,37 @@ body {
   }
 }
 
+/*
+ * T5 対応:AI レポート専用印刷モード(=日本語フォント完全対応の PDF を
+ *   ブラウザ印刷経由で生成。jsPDF の日本語フォント埋め込みが不可なため、
+ *   <html>.print-mode-report を付与した状態で window.print() を呼ぶ)
+ * `print-report-area` クラスを付けた要素だけが印刷ページに表示される。
+ */
+@media print {
+  html.print-mode-report body > *:not(.print-report-area-wrapper) {
+    display: none !important;
+  }
+  html.print-mode-report .print-report-area-wrapper {
+    position: static !important;
+    inset: auto !important;
+    background: white !important;
+    padding: 24px !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  html.print-mode-report .print-report-area-wrapper * {
+    visibility: visible !important;
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  html.print-mode-report .print-report-area-wrapper .print-hide {
+    display: none !important;
+  }
+}
+
 /* Focus ring strengthening for a11y */
 :focus-visible {
   outline: 2px solid var(--brand);

@@ -90,23 +90,29 @@ export async function login(email: string, password: string): Promise<Session> {
  * scope='local' で他デバイスのセッションは生かす。
  */
 export async function abortLogin(): Promise<void> {
-  if (isSupabaseReady()) {
-    const sb = createSupabaseBrowser();
-    await sb.auth.signOut({ scope: "local" });
-  }
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(SESSION_KEY);
+  try {
+    if (isSupabaseReady()) {
+      const sb = createSupabaseBrowser();
+      await sb.auth.signOut({ scope: "local" });
+    }
+  } finally {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SESSION_KEY);
+    }
   }
 }
 
 export async function logout(): Promise<void> {
-  if (isSupabaseReady()) {
-    const sb = createSupabaseBrowser();
-    // scope='local' で当ブラウザのセッションのみ削除(=他デバイスは巻き込まない)
-    await sb.auth.signOut({ scope: "local" });
-  }
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(SESSION_KEY);
+  try {
+    if (isSupabaseReady()) {
+      const sb = createSupabaseBrowser();
+      // scope='local' で当ブラウザのセッションのみ削除(=他デバイスは巻き込まない)
+      await sb.auth.signOut({ scope: "local" });
+    }
+  } finally {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SESSION_KEY);
+    }
   }
 }
 

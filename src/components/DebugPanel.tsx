@@ -24,7 +24,7 @@ export default function DebugPanel() {
     const next: Record<string, string> = {};
     for (let i = 0; i < window.localStorage.length; i++) {
       const k = window.localStorage.key(i);
-      if (k && k.startsWith("trendio-")) {
+      if (k && (k.startsWith("karteia-") || k.startsWith("customercare-"))) {
         const v = window.localStorage.getItem(k) ?? "";
         next[k] = v.length > 80 ? v.slice(0, 80) + "…" : v;
       }
@@ -40,7 +40,9 @@ export default function DebugPanel() {
     if (typeof window === "undefined") return;
     for (let i = window.localStorage.length - 1; i >= 0; i--) {
       const k = window.localStorage.key(i);
-      if (k && k.startsWith("trendio-")) window.localStorage.removeItem(k);
+      if (k && (k.startsWith("karteia-") || k.startsWith("customercare-"))) {
+        window.localStorage.removeItem(k);
+      }
     }
     window.location.reload();
   }
@@ -92,7 +94,7 @@ export default function DebugPanel() {
                 <div className="text-gray-400">(no session)</div>
               )}
             </Block>
-            <Block title={`localStorage (trendio-*) — ${Object.keys(storage).length}`}>
+            <Block title={`localStorage (karteia-*) — ${Object.keys(storage).length}`}>
               {Object.entries(storage).map(([k, v]) => (
                 <div key={k} className="break-all">
                   <span className="font-mono text-emerald-600">{k}</span>{" "}

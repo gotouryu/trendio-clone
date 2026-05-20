@@ -25,6 +25,9 @@ export const env = {
   tiktokClientKey: nonEmpty(process.env.TIKTOK_CLIENT_KEY),
   tiktokClientSecret: nonEmpty(process.env.TIKTOK_CLIENT_SECRET),
   tiktokOauthRedirect: nonEmpty(process.env.TIKTOK_OAUTH_REDIRECT),
+  // H2 対応:sns_accounts.access_token / refresh_token を AES-256-GCM で暗号化する鍵
+  // hex 64 文字(=32 バイト)。openssl rand -hex 32 で生成。
+  tokenEncryptionKey: nonEmpty(process.env.TOKEN_ENCRYPTION_KEY),
 };
 
 export function hasSupabase() {

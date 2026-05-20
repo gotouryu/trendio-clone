@@ -51,7 +51,12 @@ export async function PATCH(
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const { id } = await ctx.params;
-  const body = (await req.json()) as Partial<Customer>;
+  let body: Partial<Customer>;
+  try {
+    body = (await req.json()) as Partial<Customer>;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
 
   const sb = await createSupabaseServer();
   if (!sb) {

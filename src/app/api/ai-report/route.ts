@@ -10,6 +10,7 @@ import type {
 } from "@/lib/types";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { assertSameOrigin } from "@/lib/csrf";
+import { consumeRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -52,7 +53,31 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  const body = (await req.json()) as Body;
+  // H3 対応:AI レポート生成のレートリミット(=1分間 2 回、=最大トークン消費)
+  const rl = await consumeRateLimit({
+    userId: auth.userId,
+    kind: "ai_report",
+    windowSec: 60,
+    maxInWindow: 2,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        error: `AI レポート生成は1分に2回までです。あと ${rl.retryAfterSec} 秒お待ちください。`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      },
+    );
+  }
+
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
 
   // 入力長制限(=配列の要素数を制限してトークン爆発防止)
   body.actionTrend = (body.actionTrend ?? []).slice(0, 60);

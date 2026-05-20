@@ -10,6 +10,7 @@ import {
 } from "@/lib/tiktok";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { encryptToken } from "@/lib/tokenCrypto";
 
 export const runtime = "nodejs";
 
@@ -87,6 +88,7 @@ export async function GET(req: NextRequest) {
   const sb = await createSupabaseServer();
   if (!sb) return redirectSettings(req, { error: "supabase_not_configured" });
 
+  // H2 対応:access_token / refresh_token は AES-256-GCM で暗号化してから保存
   const { error: upsertErr } = await sb
     .from("sns_accounts")
     .upsert(
@@ -94,8 +96,10 @@ export async function GET(req: NextRequest) {
         user_id: auth.userId,
         platform: "tiktok",
         external_account_id: tok.open_id,
-        access_token: tok.access_token,
-        refresh_token: tok.refresh_token,
+        access_token: encryptToken(tok.access_token),
+        refresh_token: tok.refresh_token
+          ? encryptToken(tok.refresh_token)
+          : null,
         expires_at: expiresAt,
         display_name: displayName,
         last_synced_at: new Date().toISOString(),

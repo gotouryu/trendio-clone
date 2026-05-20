@@ -18,6 +18,7 @@ import {
 } from "@/lib/instagram";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { encryptToken } from "@/lib/tokenCrypto";
 
 export const runtime = "nodejs";
 
@@ -88,6 +89,7 @@ export async function GET(req: NextRequest) {
   const expiresAt = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString();
 
   // sns_accounts に upsert(=既存接続があれば access_token 更新、なければ新規作成)
+  // H2 対応:access_token は AES-256-GCM で暗号化してから保存
   const { error: upsertErr } = await sb
     .from("sns_accounts")
     .upsert(
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest) {
         user_id: auth.userId,
         platform: "instagram",
         external_account_id: igInfo.igUserId,
-        access_token: userAccessToken,
+        access_token: encryptToken(userAccessToken),
         display_name: igInfo.pageId,
         expires_at: expiresAt,
         last_synced_at: new Date().toISOString(),
