@@ -16,6 +16,7 @@ import { mockCustomers } from "@/lib/mockData";
 import CaremoProcessBar, {
   CaremoWelcomeHeader,
 } from "@/components/CaremoProcessBar";
+import { getSession } from "@/lib/authClient";
 
 const statusOptions: { value: CustomerStatus | "all"; label: string; cls: string }[] = [
   { value: "all", label: "すべて", cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" },
@@ -41,8 +42,11 @@ export default function CustomersPage() {
   const [filter, setFilter] = useState<CustomerStatus | "all">("all");
   const [tagFilter, setTagFilter] = useState<CustomerTag | "all">("all");
   const [query, setQuery] = useState("");
+  const [displayName, setDisplayName] = useState("お客様");
 
   useEffect(() => {
+    const s = getSession();
+    if (s?.displayName) setDisplayName(s.displayName);
     fetch("/api/customers?limit=200")
       .then((r) => r.json())
       .then((j) => {
@@ -81,7 +85,7 @@ export default function CustomersPage() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       <CaremoProcessBar current="records" />
       <CaremoWelcomeHeader
-        greeting="お疲れさまです、龍さん ☕️"
+        greeting={`お疲れさまです、${displayName}さん ☕️`}
         title="お客様一人ひとりとの関わりを大切に 💚"
         subtitle={
           stats.total > 0

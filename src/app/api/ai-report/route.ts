@@ -8,6 +8,7 @@ import type {
   RegionItem,
   HourlyEngagement,
 } from "@/lib/types";
+import { requireUser } from "@/lib/supabase/requireUser";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,15 @@ const SYSTEM_PROMPT = `あなたはシニアSNSアナリストです。Instagram
 数字は根拠ベースで具体的に書く。一般論や曖昧表現は避ける。`;
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const body = (await req.json()) as Body;
+
+  // 入力長制限(=配列の要素数を制限してトークン爆発防止)
+  body.actionTrend = (body.actionTrend ?? []).slice(0, 60);
+  body.regions = (body.regions ?? []).slice(0, 30);
+  body.hourly = (body.hourly ?? []).slice(0, 24);
 
   if (!hasAnthropic()) {
     return NextResponse.json({
@@ -83,9 +92,10 @@ ${body.hourly.filter((h) => h.engagement > 0).map((h) => `${h.hour}時: ${h.enga
       maxTokens: 3000,
     });
     return NextResponse.json({ markdown, mock: false });
-  } catch (err) {
+  } catch {
+    // 内部エラー詳細はクライアントに返さない(=SDK 内部情報漏洩防止)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Report generation failed" },
+      { error: "Report generation failed" },
       { status: 500 },
     );
   }

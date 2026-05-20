@@ -13,9 +13,18 @@ export type Session = {
    * 未設定の場合は空文字。サイドバーの表示判定で空文字は隠す。
    */
   companyName: string;
+  /** 画面ヘッダーの「お疲れさまです、〇〇さん」用の表示名。会社名→email先頭の順でフォールバック */
+  displayName: string;
   role: Role;
   loggedInAt: string;
 };
+
+/** email から表示名候補を作る(=@ 前の部分、最大20文字) */
+function deriveDisplayName(email: string, companyName: string): string {
+  if (companyName) return companyName;
+  const local = email.split("@")[0] ?? "";
+  return local.slice(0, 20) || "お客様";
+}
 
 /**
  * Sign in with email/password.
@@ -53,9 +62,11 @@ export async function login(email: string, password: string): Promise<Session> {
     // ignore
   }
 
+  const companyName = profile?.company_name ?? "";
   const session: Session = {
     email: user.email!,
-    companyName: profile?.company_name ?? "",
+    companyName,
+    displayName: deriveDisplayName(user.email!, companyName),
     role: (profile?.role as Role) ?? "customer",
     loggedInAt: new Date().toISOString(),
   };
@@ -63,10 +74,26 @@ export async function login(email: string, password: string): Promise<Session> {
   return session;
 }
 
+/**
+ * ロール不一致でログイン画面に弾く時のクリーンアップ。
+ * Supabase Auth セッション(=cookie + localStorage)+ アプリ独自セッションを両方とも削除。
+ * scope='local' で他デバイスのセッションは生かす。
+ */
+export async function abortLogin(): Promise<void> {
+  if (isSupabaseReady()) {
+    const sb = createSupabaseBrowser();
+    await sb.auth.signOut({ scope: "local" });
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(SESSION_KEY);
+  }
+}
+
 export async function logout(): Promise<void> {
   if (isSupabaseReady()) {
     const sb = createSupabaseBrowser();
-    await sb.auth.signOut();
+    // scope='local' で当ブラウザのセッションのみ削除(=他デバイスは巻き込まない)
+    await sb.auth.signOut({ scope: "local" });
   }
   if (typeof window !== "undefined") {
     localStorage.removeItem(SESSION_KEY);

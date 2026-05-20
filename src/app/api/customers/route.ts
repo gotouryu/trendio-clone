@@ -20,9 +20,11 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const rawSearch = searchParams.get("search")?.toLowerCase() ?? "";
-  // PostgREST の or() に直挿入するため構文文字を除去(=,()*:%, バックスラッシュ)。
-  // これを sanitize しないと "foo,status.eq.admin" のような値で別フィルタを差し込まれる。
-  const search = rawSearch.replace(/[,()*:%\\]/g, "").trim().slice(0, 64);
+  // PostgREST の or() に直挿入するため構文文字を除去:
+  //  ,()*:% \\ . — PostgREST のフィールド/オペレータ区切り文字
+  //  _ — SQL LIKE のワイルドカード(=任意1文字)、未エスケープなら過剰マッチ
+  // この sanitize がないと "foo,status.eq.admin" や "%" 一文字で別フィルタ差し込み/全件マッチDoSが可能
+  const search = rawSearch.replace(/[,()*:%\\._]/g, "").trim().slice(0, 64);
   const status = searchParams.get("status");
   const tag = searchParams.get("tag");
   const limitRaw = parseInt(searchParams.get("limit") ?? "50", 10);
@@ -114,19 +116,47 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const { data, error } = await sb
+
+  // upsert で既存行の first_contact_at/tags/status/auto_reply_enabled が上書きされる問題への対策:
+  // 1) 既存行があるか先に check → ある場合は更新対象を絞る
+  // 2) ない場合のみ INSERT で初期値を渡す
+  const { data: existing } = await sb
     .from("customers")
-    .upsert(
-      {
+    .select("id, first_contact_at")
+    .eq("user_id", auth.userId)
+    .eq("instagram_handle", body.instagramHandle)
+    .maybeSingle();
+
+  let data: CustomerRow | null = null;
+  let error: { message: string } | null = null;
+
+  if (existing) {
+    // 既存行:profile/last_contact のみ更新、first_contact_at/tags/status は触らない
+    const res = await sb
+      .from("customers")
+      .update({
+        display_name: body.displayName ?? undefined,
+        profile_image_url: body.profileImageUrl ?? undefined,
+        last_contact_at: now,
+        notes: body.notes ?? undefined,
+        age_range: body.ageRange ?? undefined,
+        gender: body.gender ?? undefined,
+        region: body.region ?? undefined,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+    data = res.data as CustomerRow | null;
+    error = res.error;
+  } else {
+    // 新規行:全フィールドを初期化
+    const res = await sb
+      .from("customers")
+      .insert({
         user_id: auth.userId,
         instagram_handle: body.instagramHandle,
         display_name: body.displayName ?? body.instagramHandle,
         profile_image_url: body.profileImageUrl,
-        // 初回挿入時は first_contact_at / last_contact_at を now() で埋める。
-        // 既存行に対する upsert ではこれらは onConflict の DO UPDATE で上書きされうるため、
-        // 既存行を更新する場合は last_contact_at だけを更新するべきだが、
-        // POST は「名寄せ初期化」用途。実運用では customer_interactions INSERT のトリガーで
-        // last_contact_at は更新されるため、ここは upsert 互換に保つ。
         first_contact_at: now,
         last_contact_at: now,
         tags: body.tags ?? ["新規"],
@@ -136,13 +166,15 @@ export async function POST(req: NextRequest) {
         age_range: body.ageRange,
         gender: body.gender,
         region: body.region,
-      },
-      { onConflict: "user_id,instagram_handle", ignoreDuplicates: false },
-    )
-    .select()
-    .single();
+      })
+      .select()
+      .single();
+    data = res.data as CustomerRow | null;
+    error = res.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "no row" }, { status: 500 });
   return NextResponse.json({ customer: rowToCustomer(data), mock: false });
 }
 

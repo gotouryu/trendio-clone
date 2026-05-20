@@ -21,6 +21,7 @@ import { useToast } from "@/components/providers/ToasterProvider";
 import CaremoProcessBar, {
   CaremoWelcomeHeader,
 } from "@/components/CaremoProcessBar";
+import { getSession } from "@/lib/authClient";
 
 const filterOptions = [
   { value: "all", label: "すべて" },
@@ -63,9 +64,12 @@ export default function CommentsPage() {
   const [autoReplyLogs, setAutoReplyLogs] = useState<AutoReplyLog[]>([]);
   const [monthlyCount, setMonthlyCount] = useState(0);
   const [settings, setSettings] = useState<AutoReplySettings | null>(null);
+  const [displayName, setDisplayName] = useState("お客様");
 
-  // 初期ロード:設定とログを取得
+  // 初期ロード:セッション・設定・ログを取得
   useEffect(() => {
+    const s = getSession();
+    if (s?.displayName) setDisplayName(s.displayName);
     fetch("/api/auto-reply/settings")
       .then((r) => r.json())
       .then((j) => {
@@ -243,7 +247,7 @@ export default function CommentsPage() {
         const unread = comments.filter((c) => c.status === "unread").length;
         return (
           <CaremoWelcomeHeader
-            greeting="お疲れさまです、龍さん ☕️"
+            greeting={`お疲れさまです、${displayName}さん ☕️`}
             title="今日もお客様の声に応えていきましょう ✨"
             subtitle={
               unread > 0

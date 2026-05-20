@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { jsPDF } from "jspdf";
 import {
@@ -35,6 +35,7 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import CaremoProcessBar, {
   CaremoWelcomeHeader,
 } from "@/components/CaremoProcessBar";
+import { getSession } from "@/lib/authClient";
 import {
   buildDashboardCSV,
   buildDashboardJSON,
@@ -108,6 +109,11 @@ export default function DashboardPage() {
     DEFAULT_ORDER,
   );
   const dragKey = useRef<WidgetKey | null>(null);
+  const [displayName, setDisplayName] = useState("お客様");
+  useEffect(() => {
+    const s = getSession();
+    if (s?.displayName) setDisplayName(s.displayName);
+  }, []);
 
   // Period filter
   const filteredFollowerTrend = useMemo(() => {
@@ -422,7 +428,7 @@ export default function DashboardPage() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       <CaremoProcessBar current="understand" />
       <CaremoWelcomeHeader
-        greeting="お疲れさまです、龍さん ☕️"
+        greeting={`お疲れさまです、${displayName}さん ☕️`}
         title="顧客との接点を、データで支えます ✨"
         subtitle={
           followerDelta && followerDelta.isUp

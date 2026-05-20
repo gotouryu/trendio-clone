@@ -3,6 +3,7 @@ import { hasAnthropic } from "@/lib/env";
 import { runClaude } from "@/lib/claudeClient";
 import { mockContentIdeas } from "@/lib/mockData";
 import type { ContentIdea } from "@/lib/types";
+import { requireUser } from "@/lib/supabase/requireUser";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,8 @@ type Body = {
   extra?: string;
   platform?: "instagram" | "tiktok" | "both";
 };
+
+const MAX_FIELD = 500; // 1フィールドあたり最大500文字(=Claude トークン爆発防止)
 
 const SYSTEM_PROMPT = `あなたは経験豊富なSNSマーケターです。Instagram と TikTok の運用知識を持ち、視聴者の心理を理解しています。
 
@@ -31,7 +34,23 @@ const SYSTEM_PROMPT = `あなたは経験豊富なSNSマーケターです。Ins
 ]`;
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const body = (await req.json()) as Body;
+
+  // 入力長制限(=Claude トークン爆発防止)
+  const industry = String(body.industry ?? "").slice(0, MAX_FIELD);
+  const goal = String(body.goal ?? "").slice(0, MAX_FIELD);
+  const extra = String(body.extra ?? "").slice(0, MAX_FIELD);
+  const platform: "instagram" | "tiktok" | "both" =
+    body.platform === "instagram" || body.platform === "tiktok" || body.platform === "both"
+      ? body.platform
+      : "both";
+
+  if (!industry || !goal) {
+    return NextResponse.json({ error: "industry and goal are required" }, { status: 400 });
+  }
 
   if (!hasAnthropic()) {
     // Fall back to mock so the UI flow remains demonstrable without API key
@@ -41,10 +60,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const userPrompt = `業界: ${body.industry}
-マーケティング目的: ${body.goal}
-追加要望: ${body.extra ?? "なし"}
-プラットフォーム: ${body.platform ?? "both"}
+  const userPrompt = `業界: ${industry}
+マーケティング目的: ${goal}
+追加要望: ${extra || "なし"}
+プラットフォーム: ${platform}
 
 上記条件で3つのコンテンツアイデアを生成してください。`;
 
@@ -54,19 +73,17 @@ export async function POST(req: NextRequest) {
       user: userPrompt,
       maxTokens: 2048,
     });
-    const cleaned = raw.trim().replace(/^```json\s*/i, "").replace(/```$/, "");
+    const cleaned = raw.trim().replace(/^```json\s*/i, "").replace(/```\s*$/, "");
     const parsed = JSON.parse(cleaned) as Omit<ContentIdea, "id">[];
     const ideas: ContentIdea[] = parsed.map((p, i) => ({
       ...p,
       id: `gen-${Date.now()}-${i}`,
     }));
     return NextResponse.json({ ideas, mock: false });
-  } catch (err) {
+  } catch {
+    // 内部エラー詳細はクライアントに返さない(=SDK 内部情報漏洩防止)
     return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : "Generation failed",
-        ideas: [],
-      },
+      { error: "Generation failed", ideas: [] },
       { status: 500 },
     );
   }

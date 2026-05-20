@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
-import { login } from "@/lib/authClient";
+import { login, abortLogin } from "@/lib/authClient";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -23,6 +23,9 @@ export default function AdminLoginPage() {
     try {
       const session = await login(email, password);
       if (session.role !== "admin") {
+        // 顧客が誤って管理者ポータルに入った時、Supabase Auth セッションが
+        // ブラウザに残ったまま /dashboard 等のAPIに認証通過する穴を塞ぐ
+        await abortLogin();
         setError("このページは管理者専用です");
         setSubmitting(false);
         return;

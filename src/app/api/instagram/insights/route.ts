@@ -2,10 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasMeta } from "@/lib/env";
 import { fetchInsights } from "@/lib/instagram";
 import { mockKPI } from "@/lib/mockData";
+import { requireUser } from "@/lib/supabase/requireUser";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const igUserId = searchParams.get("igUserId");
   const accessToken = searchParams.get("accessToken");

@@ -22,12 +22,27 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- Helper: is_admin(uid) — SECURITY DEFINER で RLS の再帰を回避
+-- (=ポリシー内で profiles を直接 SELECT すると無限再帰になるため、判定ロジックを関数化)
+create or replace function public.is_admin(uid uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (select 1 from public.profiles where id = uid and role = 'admin');
+$$;
+
+revoke all on function public.is_admin(uuid) from public;
+grant execute on function public.is_admin(uuid) to authenticated, anon, service_role;
+
 -- Customer can read/update only their own row; admin can read all
 drop policy if exists "profiles: own row or admin read" on public.profiles;
 create policy "profiles: own row or admin read"
   on public.profiles for select using (
     auth.uid() = id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    or public.is_admin(auth.uid())
   );
 drop policy if exists "profiles: own row update" on public.profiles;
 create policy "profiles: own row update"
@@ -35,7 +50,7 @@ create policy "profiles: own row update"
 drop policy if exists "profiles: admin can update any" on public.profiles;
 create policy "profiles: admin can update any"
   on public.profiles for update using (
-    exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    public.is_admin(auth.uid())
   );
 drop policy if exists "profiles: own row insert" on public.profiles;
 create policy "profiles: own row insert"
@@ -211,7 +226,7 @@ drop policy if exists "login_events: select own or admin" on public.login_events
 create policy "login_events: select own or admin"
   on public.login_events for select using (
     auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+    or public.is_admin(auth.uid())
   );
 
 -- ============================================================

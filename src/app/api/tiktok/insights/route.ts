@@ -1,10 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasTikTok } from "@/lib/env";
 import { fetchTikTokUserStats } from "@/lib/tiktok";
+import { requireUser } from "@/lib/supabase/requireUser";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const accessToken = searchParams.get("accessToken");
 

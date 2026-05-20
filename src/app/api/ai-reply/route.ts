@@ -46,6 +46,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 入力長制限(=Claude トークン爆発防止)
+  body.commentText = body.commentText.slice(0, 2000);
+  if (body.customerHandle) body.customerHandle = body.customerHandle.slice(0, 100);
+  if (body.customerHistory) body.customerHistory = body.customerHistory.slice(0, 4000);
+
   // フォールバック:Anthropic未設定時は簡易テンプレ
   if (!hasAnthropic()) {
     const reply = fallbackReply(body.commentText);
