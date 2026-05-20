@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { login } from "@/lib/authClient";
+import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -19,11 +21,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     if (!email || !password) {
-      setError("メールアドレスとパスワードを入力してください");
+      setError(t("login.err.required"));
       return;
     }
     if (!agreed) {
-      setError("利用規約とプライバシーポリシーに同意してください");
+      setError(t("login.err.agree"));
       return;
     }
     setSubmitting(true);
@@ -31,7 +33,7 @@ export default function LoginPage() {
       const session = await login(email, password);
       router.push(session.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "ログインに失敗しました");
+      setError(err instanceof Error ? err.message : t("login.err.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +70,7 @@ export default function LoginPage() {
             className="text-center text-sm mt-2 mb-6"
             style={{ color: "var(--muted)" }}
           >
-            お疲れさまです。アカウントにログインしてください ☕️
+            {t("login.greeting")}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -78,7 +80,7 @@ export default function LoginPage() {
                 className="block text-sm font-medium mb-2"
                 style={{ color: "var(--foreground)" }}
               >
-                メールアドレス
+                {t("login.email")}
               </label>
               <input
                 id="login-email"
@@ -107,7 +109,7 @@ export default function LoginPage() {
                 className="block text-sm font-medium mb-2"
                 style={{ color: "var(--foreground)" }}
               >
-                パスワード
+                {t("login.password")}
               </label>
               <input
                 id="login-password"
@@ -117,7 +119,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="パスワードを入力"
+                placeholder={t("login.passwordPlaceholder")}
                 className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400"
                 style={
                   {
@@ -141,14 +143,14 @@ export default function LoginPage() {
                   className="rounded border-gray-300"
                   style={{ accentColor: "var(--brand)" }}
                 />
-                ログイン状態を維持
+                {t("login.rememberMe")}
               </label>
               <Link
                 href="/forgot-password"
                 className="text-sm font-medium"
                 style={{ color: "var(--brand-dark)" }}
               >
-                パスワードをお忘れですか?
+                {t("login.forgot")}
               </Link>
             </div>
 
@@ -169,17 +171,17 @@ export default function LoginPage() {
                   className="font-medium"
                   style={{ color: "var(--brand-dark)" }}
                 >
-                  利用規約
+                  {t("login.terms")}
                 </Link>
-                {" と "}
+                {t("login.agreeMid")}
                 <Link
                   href="/privacy"
                   className="font-medium"
                   style={{ color: "var(--brand-dark)" }}
                 >
-                  プライバシーポリシー
+                  {t("login.privacy")}
                 </Link>
-                {" に同意します"}
+                {t("login.agreeEnd")}
               </span>
             </label>
 
@@ -205,14 +207,14 @@ export default function LoginPage() {
                   "linear-gradient(135deg, #0d9488 0%, #134e4a 100%)",
               }}
             >
-              {submitting ? "ログイン中..." : "ログイン"}
+              {submitting ? t("login.submitting") : t("login.submit")}
             </button>
 
             <p
               className="text-center text-sm"
               style={{ color: "var(--muted)" }}
             >
-              アカウントは管理者から発行されます
+              {t("login.adminIssued")}
             </p>
           </form>
         </div>
@@ -222,15 +224,15 @@ export default function LoginPage() {
           style={{ color: "var(--muted)" }}
         >
           <Link href="/privacy" className="hover:underline">
-            プライバシーポリシー
+            {t("footer.privacy")}
           </Link>
           <span>•</span>
           <Link href="/terms" className="hover:underline">
-            利用規約
+            {t("footer.terms")}
           </Link>
           <span>•</span>
           <Link href="/support" className="hover:underline">
-            サポート
+            {t("footer.support")}
           </Link>
         </div>
       </div>
