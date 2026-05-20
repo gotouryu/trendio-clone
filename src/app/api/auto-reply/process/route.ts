@@ -190,6 +190,34 @@ export async function POST(req: NextRequest) {
  * 自動応答処理のコアロジック(=共P-01「無人受付」判定)
  * 副作用なし、ユニットテスト可能。
  */
+/**
+ * Phase 3 Wave-D 修正:NFKC 正規化 + 大文字小文字無視で
+ * 「ク レーム」「クレ-ム」「ク💢レーム」のようなバイパスを防止
+ *
+ * Human-in-the-Loop 担保:Karteia の中核セキュリティ機能
+ */
+function normalizeForMatch(s: string): string {
+  return s
+    .normalize("NFKC")
+    .toLowerCase()
+    // 制御文字・絵文字変位選択子・ゼロ幅文字を除去
+    .replace(/[​-‍﻿︎️]/g, "")
+    // 単純な英字の区切り記号(=ハイフン・スペース)を除去して「ク レーム」も「クレーム」とみなす
+    .replace(/[\s\-_]+/g, "");
+}
+
+/** Karteia 標準内蔵 NG ワード辞書(=ユーザー追加分とマージして判定) */
+const BUILT_IN_NG_KEYWORDS = [
+  "クレーム",
+  "返金",
+  "弁護士",
+  "訴える",
+  "complaint",
+  "refund",
+  "lawyer",
+  "lawsuit",
+];
+
 export function processComment(
   text: string,
   settings: AutoReplySettings,
@@ -199,8 +227,12 @@ export function processComment(
     return { status: "skipped", reason: "auto_reply_mode_off" };
   }
 
-  // 1. NGワード判定(=最優先)
-  const ngHit = settings.ngKeywords.find((kw) => text.includes(kw));
+  // 1. NGワード判定(=最優先、Phase 3 Wave-D 強化:NFKC + 内蔵辞書 + 区切り無視)
+  const normalizedText = normalizeForMatch(text);
+  const allNgKeywords = [...BUILT_IN_NG_KEYWORDS, ...settings.ngKeywords];
+  const ngHit = allNgKeywords.find((kw) =>
+    normalizedText.includes(normalizeForMatch(kw)),
+  );
   if (ngHit) {
     return {
       status: "blocked_ng",
@@ -215,15 +247,17 @@ export function processComment(
     ? isWithinBusinessHours(now, settings.businessHours)
     : true;
 
-  // 3. FAQパターンマッチ
+  // 3. FAQパターンマッチ(=長いキーワード優先、Phase 3 Wave-D 修正)
   const faqHit = matchFaqPattern(text, settings.faqPatterns);
   if (faqHit) {
+    // Phase 3 Wave-D 修正:FAQ ヒットは時間に関係なく faq_match で固定
+    // (=旧実装は時間外で business_hours_out になり、ログ集計時に二重カウント発生)
     return {
       status: "sent",
       reply: faqHit.reply,
       matchedFaqId: faqHit.id,
       matchedKeyword: faqHit.keyword,
-      triggerReason: inBusinessHours ? "faq_match" : "business_hours_out",
+      triggerReason: "faq_match",
     };
   }
 
@@ -265,10 +299,22 @@ function isWithinBusinessHours(
   return cur >= sh * 60 + sm && cur < eh * 60 + em;
 }
 
-function matchFaqPattern(text: string, patterns: FaqPattern[]): FaqPattern | null {
-  for (const p of patterns) {
-    if (!p.enabled) continue;
-    if (text.includes(p.keyword)) return p;
+/**
+ * FAQ パターンマッチ(=Phase 3 Wave-D 修正)
+ * - NFKC 正規化 + 大文字小文字無視
+ * - 長いキーワード優先(=「営業時間外」が「営業時間」より先にマッチする)
+ */
+function matchFaqPattern(
+  text: string,
+  patterns: FaqPattern[],
+): FaqPattern | null {
+  const normalizedText = normalizeForMatch(text);
+  // 有効パターンのみ + キーワード長で降順ソート
+  const enabled = patterns
+    .filter((p) => p.enabled)
+    .sort((a, b) => b.keyword.length - a.keyword.length);
+  for (const p of enabled) {
+    if (normalizedText.includes(normalizeForMatch(p.keyword))) return p;
   }
   return null;
 }

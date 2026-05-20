@@ -128,21 +128,99 @@ export default function DashboardPage() {
     return mockActionTrend;
   }, [period]);
 
-  // フォロワー推移の前期間→今期間 変化計算(=「+0 (0%)」ハードコード解消)
+  // フォロワー推移の前期間→今期間 変化計算
+  // Phase 3 Wave-D 修正:i18n dict 経由に統一 + 依存配列に t を追加
   const followerDelta = useMemo(() => {
     if (filteredFollowerTrend.length < 2) return null;
     const first = filteredFollowerTrend[0].followers;
     const last = filteredFollowerTrend[filteredFollowerTrend.length - 1].followers;
     const diff = last - first;
-    if (first === 0 && last === 0) return { label: t("common.noData"), isUp: false };
-    if (first === 0) return { label: `新規 +${last}人`, isUp: true };
+    if (first === 0 && last === 0) {
+      return { label: t("dashboard.followerDelta.nodata"), isUp: false };
+    }
+    if (first === 0) {
+      return {
+        label: t("dashboard.followerDelta.new", { n: last }),
+        isUp: true,
+      };
+    }
     const pct = (diff / first) * 100;
-    const sign = diff >= 0 ? "+" : "";
+    const key =
+      diff >= 0
+        ? "dashboard.followerDelta.up"
+        : "dashboard.followerDelta.down";
     return {
-      label: `${sign}${diff} (${sign}${pct.toFixed(1)}%)`,
+      label: t(key, {
+        n: Math.abs(diff),
+        pct: Math.abs(pct).toFixed(1),
+      }),
       isUp: diff >= 0,
     };
-  }, [filteredFollowerTrend]);
+  }, [filteredFollowerTrend, t]);
+
+  // Phase 3 Wave-D 修正(=Critical C-4):Instagram 接続状態 + 実 KPI を取得
+  // 未接続なら mockKPI ではなく empty state を見せる
+  const [igConnected, setIgConnected] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/sns/accounts");
+        if (!r.ok) {
+          if (!cancelled) setIgConnected(false);
+          return;
+        }
+        const j = (await r.json()) as {
+          accounts: { platform: string }[];
+        };
+        if (!cancelled) {
+          setIgConnected(
+            Array.isArray(j.accounts) &&
+              j.accounts.some((a) => a.platform === "instagram"),
+          );
+        }
+      } catch {
+        if (!cancelled) setIgConnected(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Phase 3 Wave-D 修正(=Critical C-5):AI レポート生成
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportMd, setReportMd] = useState<string>("");
+  const [reportLoading, setReportLoading] = useState(false);
+  async function generateReport(platform: "instagram" | "tiktok") {
+    setReportLoading(true);
+    setReportOpen(true);
+    setReportMd("");
+    try {
+      const res = await fetch("/api/ai-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          period,
+          kpi: mockKPI,
+          actionTrend: filteredActionTrend,
+          gender: mockGenderRatio,
+          regions: mockRegions,
+          hourly: mockHourlyEngagement,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "report_failed");
+      setReportMd(j.report ?? "");
+    } catch (err) {
+      setReportMd(
+        err instanceof Error ? `Error: ${err.message}` : "Error generating report",
+      );
+    } finally {
+      setReportLoading(false);
+    }
+  }
 
   const totalLikes = filteredActionTrend.reduce((s, p) => s + p.likes, 0);
   const totalComments = filteredActionTrend.reduce(
@@ -504,6 +582,31 @@ export default function DashboardPage() {
         }
       />
 
+      {/* Phase 3 Wave-D: Instagram 未接続バナー(=Critical C-4) */}
+      {igConnected === false && (
+        <div
+          className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3"
+          role="status"
+        >
+          <Instagram className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 text-sm">
+            <div className="font-semibold text-gray-900 dark:text-gray-100">
+              {t("dashboard.tiktok.connect.title").replace("TikTok", "Instagram")}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Below KPIs and charts show sample data until you connect your
+              Instagram Business Account in Settings.
+            </div>
+          </div>
+          <a
+            href="/settings"
+            className="text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium flex-shrink-0"
+          >
+            {t("dashboard.tiktok.connect.cta")}
+          </a>
+        </div>
+      )}
+
       {/* Instagram Section */}
       <section className="mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -590,6 +693,48 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* AI Report Modal (=Phase 3 Wave-D Critical C-5) */}
+      {reportOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReportOpen(false);
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] flex flex-col">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3
+                id="report-modal-title"
+                className="text-lg font-bold text-gray-900 dark:text-gray-100"
+              >
+                {t("dashboard.whitepaper")}
+              </h3>
+              <button
+                onClick={() => setReportOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
+                aria-label={t("common.cancel")}
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1">
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-12 text-gray-500">
+                  {t("common.loading")}
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-100 font-sans">
+                  {reportMd}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Whitepaper */}
       <section className="mb-8">
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
@@ -626,9 +771,15 @@ export default function DashboardPage() {
                 <FileDown className="w-3.5 h-3.5" />
                 {t("dashboard.report.pdfSave")}
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-xs font-medium">
+              <button
+                onClick={() => generateReport("instagram")}
+                disabled={reportLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium"
+              >
                 <SparkleIcon className="w-3.5 h-3.5" />
-                {t("dashboard.generateReport")}
+                {reportLoading
+                  ? t("common.loading")
+                  : t("dashboard.generateReport")}
               </button>
             </div>
           </div>
