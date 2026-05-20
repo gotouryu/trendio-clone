@@ -71,43 +71,58 @@ export default function CommentsPage() {
   const [displayName, setDisplayName] = useState("お客様");
 
   // 初期ロード:セッション・設定・ログを取得
+  // ⚠️ mockData fallback は **API 到達失敗時のみ** 適用。
+  //    API 到達 (response.ok) かつ本番DBが 0件 = 実データそのまま反映(=空状態を表示)。
+  //    旧実装は「0件 = mock 表示」のため、本番運用直後の整合性が壊れていた。
   useEffect(() => {
     const s = getSession();
     if (s?.displayName) setDisplayName(s.displayName);
-    fetch("/api/auto-reply/settings")
-      .then((r) => r.json())
-      .then((j) => {
+
+    (async () => {
+      try {
+        const r = await fetch("/api/auto-reply/settings");
+        if (!r.ok) {
+          setSettings(mockAutoReplySettings);
+          return;
+        }
+        const j = await r.json();
         if (j.settings) {
           setSettings(j.settings as AutoReplySettings);
-          setAutoReplyEnabled(j.settings.enabled);
+          setAutoReplyEnabled(Boolean(j.settings.enabled));
         } else {
-          // 本番DB未登録時のデモ表示用フォールバック(=実データ発生後は使われない)
           setSettings(mockAutoReplySettings);
         }
-      })
-      .catch(() => {
+      } catch {
         setSettings(mockAutoReplySettings);
-      });
+      }
+    })();
 
-    fetch("/api/auto-reply/logs?limit=50")
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.logs && j.logs.length > 0) {
+    (async () => {
+      try {
+        const r = await fetch("/api/auto-reply/logs?limit=50");
+        if (!r.ok) {
+          // API 到達失敗のみ mock
+          setAutoReplyLogs(mockAutoReplyLogs);
+          setMonthlyCount(mockAutoReplyLogs.length);
+          return;
+        }
+        const j = await r.json();
+        if (Array.isArray(j.logs)) {
+          // 0 件でもそのまま表示(=本番運用直後の正しい挙動)
           setAutoReplyLogs(j.logs as AutoReplyLog[]);
         } else {
-          // 本番DB未登録時のデモ表示用フォールバック(=実データ発生後は実ログで上書き)
           setAutoReplyLogs(mockAutoReplyLogs);
         }
-        if (typeof j.monthlyCount === "number" && j.monthlyCount > 0) {
+        if (typeof j.monthlyCount === "number") {
           setMonthlyCount(j.monthlyCount);
         } else {
-          setMonthlyCount(mockAutoReplyLogs.length);
+          setMonthlyCount(0);
         }
-      })
-      .catch(() => {
+      } catch {
         setAutoReplyLogs(mockAutoReplyLogs);
         setMonthlyCount(mockAutoReplyLogs.length);
-      });
+      }
+    })();
   }, []);
 
   const filtered = useMemo(() => {

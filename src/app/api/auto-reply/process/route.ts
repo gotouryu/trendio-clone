@@ -92,26 +92,34 @@ export async function POST(req: NextRequest) {
   const result = processComment(body.commentText, settings);
 
   // customer_id の所有確認(=列挙攻撃防御、自分の顧客以外は触れない)
+  // 検証成功時は customer_handle も body の自己申告ではなく DB の値で上書き
+  // (=なりすまし防止:body.customerHandle に他人のハンドルを書かれてもログに記録されない)
   let verifiedCustomerId: string | null = null;
+  let verifiedCustomerHandle: string = body.customerHandle;
   if (sb && body.customerId) {
     const { data: ownCustomer } = await sb
       .from("customers")
-      .select("id")
+      .select("id, instagram_handle")
       .eq("id", body.customerId)
       .eq("user_id", auth.userId)
       .maybeSingle();
-    if (ownCustomer) verifiedCustomerId = ownCustomer.id;
+    if (ownCustomer) {
+      verifiedCustomerId = ownCustomer.id;
+      verifiedCustomerHandle = ownCustomer.instagram_handle;
+    }
   }
 
   // ログ保存(=共P-01 5年間ログ保管要件)
-  if (sb && result.status !== "skipped") {
-    const { data: logRow } = await sb
+  // skipped でも履歴は残す(=共P-01「顧客行動履歴」要件、no_match/business_hours_out 等の
+  // 判定根拠も後から監査できるようにする)
+  if (sb) {
+    const { data: logRow, error: logErr } = await sb
       .from("auto_reply_logs")
       .insert({
         user_id: auth.userId,
         comment_id: body.commentId,
         customer_id: verifiedCustomerId,
-        customer_handle: body.customerHandle,
+        customer_handle: verifiedCustomerHandle,
         customer_avatar: body.customerAvatar,
         original_comment: body.commentText,
         generated_reply: result.reply ?? "",
@@ -123,17 +131,49 @@ export async function POST(req: NextRequest) {
       .select("id")
       .single();
 
+    // UNIQUE 違反(=23505)はレース時の重複 INSERT。冪等性 OK として skipped 扱いで返す
+    if (logErr) {
+      const code: string | undefined = logErr.code;
+      if (code === "23505") {
+        return NextResponse.json({
+          status: "skipped",
+          reason: "duplicate_comment_id_race",
+        });
+      }
+      return NextResponse.json(
+        { error: "log insert failed" },
+        { status: 500 },
+      );
+    }
+
     // 接点履歴(customer_interactions)にも追記(=共P-01 顧客行動履歴)
     // 所有確認済みの customer_id のみ INSERT する(=トリガー bump_customer_aggregate が安全に走る)
-    if (result.status === "sent" && verifiedCustomerId) {
-      await sb.from("customer_interactions").insert({
-        user_id: auth.userId,
-        customer_id: verifiedCustomerId,
-        type: "reply_auto",
-        content: result.reply,
-        handled_by: "ai",
-        related_comment_id: body.commentId,
-      });
+    // schema CHECK 制約: type ∈ ('comment','reply_auto','reply_manual','like','save')
+    //                     handled_by ∈ ('ai','human')
+    // → status に関係なく「顧客がコメントした事実」は type='comment' で記録
+    //    sent の時のみ追加で「AIが返信した事実」を type='reply_auto' で記録
+    if (verifiedCustomerId) {
+      const rows: Record<string, unknown>[] = [
+        {
+          user_id: auth.userId,
+          customer_id: verifiedCustomerId,
+          type: "comment",
+          content: body.commentText,
+          handled_by: "ai",
+          related_comment_id: body.commentId,
+        },
+      ];
+      if (result.status === "sent" && result.reply) {
+        rows.push({
+          user_id: auth.userId,
+          customer_id: verifiedCustomerId,
+          type: "reply_auto",
+          content: result.reply,
+          handled_by: "ai",
+          related_comment_id: body.commentId,
+        });
+      }
+      await sb.from("customer_interactions").insert(rows);
     }
 
     return NextResponse.json({ ...result, logId: logRow?.id });

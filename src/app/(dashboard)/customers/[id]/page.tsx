@@ -46,33 +46,47 @@ export default function CustomerDetailPage({
     if (mockAIAnalyses[id]) {
       setAiAnalysis(mockAIAnalyses[id]);
     }
-    Promise.all([
-      fetch(`/api/customers/${id}`).then((r) => r.json()),
-      fetch(`/api/customers/${id}/interactions?limit=200`).then((r) => r.json()),
-    ])
-      .then(([cRes, iRes]) => {
-        if (cRes.customer) {
-          setCustomer(cRes.customer as Customer);
+    (async () => {
+      try {
+        const [cResp, iResp] = await Promise.all([
+          fetch(`/api/customers/${id}`),
+          fetch(`/api/customers/${id}/interactions?limit=200`),
+        ]);
+
+        // 顧客本体
+        if (cResp.ok) {
+          const cRes = await cResp.json();
+          if (cRes.customer) {
+            setCustomer(cRes.customer as Customer);
+          } else {
+            // API 到達済だが該当顧客なし → mock からも探す
+            const fb = mockCustomers.find((c) => c.id === id);
+            if (fb) setCustomer(fb);
+          }
         } else {
-          // フォールバック
+          // API 到達失敗 → mockに完全フォールバック
           const fb = mockCustomers.find((c) => c.id === id);
           if (fb) setCustomer(fb);
         }
-        // interactions が空配列の場合もデモ表示用に mockInteractions を使う
-        if (iRes.interactions && iRes.interactions.length > 0) {
-          setInteractions(iRes.interactions as CustomerInteraction[]);
+
+        // 接点履歴:API 到達済なら 0 件をそのまま表示、到達失敗時のみ mock
+        if (iResp.ok) {
+          const iRes = await iResp.json();
+          if (Array.isArray(iRes.interactions)) {
+            setInteractions(iRes.interactions as CustomerInteraction[]);
+          }
+          if (iRes.byCategoryCount) setByCategory(iRes.byCategoryCount);
         } else {
           setInteractions(mockInteractions.filter((i) => i.customerId === id));
         }
-        if (iRes.byCategoryCount) setByCategory(iRes.byCategoryCount);
-      })
-      .catch(() => {
-        // フォールバック完全モック
+      } catch {
         const fb = mockCustomers.find((c) => c.id === id);
         if (fb) setCustomer(fb);
         setInteractions(mockInteractions.filter((i) => i.customerId === id));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [id]);
 
   const runAiAnalysis = useCallback(async () => {

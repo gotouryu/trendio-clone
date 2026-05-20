@@ -41,14 +41,24 @@ export async function login(email: string, password: string): Promise<Session> {
   const user = data.user!;
 
   // Fetch profile (=role, company_name, status)
-  const { data: profile } = await sb
+  const { data: profile, error: profileErr } = await sb
     .from("profiles")
     .select("company_name, role, status")
     .eq("id", user.id)
     .single();
 
-  if (profile?.status === "suspended") {
-    await sb.auth.signOut();
+  // profile 取得失敗 or 該当行なし = ロール判定不能 → fail-closed でログアウト
+  // (=旧実装はフォールバックで customer 扱いしていたが、これだと profiles 未投入
+  //   の不正アカウントが顧客権限で素通りする穴がある。明示的に拒否する。)
+  if (profileErr || !profile) {
+    await sb.auth.signOut({ scope: "local" });
+    throw new Error(
+      "プロフィール情報を取得できませんでした。管理者にお問い合わせください",
+    );
+  }
+
+  if (profile.status === "suspended") {
+    await sb.auth.signOut({ scope: "local" });
     throw new Error("このアカウントは停止されています。管理者にお問い合わせください");
   }
 
@@ -62,12 +72,12 @@ export async function login(email: string, password: string): Promise<Session> {
     // ignore
   }
 
-  const companyName = profile?.company_name ?? "";
+  const companyName = profile.company_name ?? "";
   const session: Session = {
     email: user.email!,
     companyName,
     displayName: deriveDisplayName(user.email!, companyName),
-    role: (profile?.role as Role) ?? "customer",
+    role: (profile.role as Role) ?? "customer",
     loggedInAt: new Date().toISOString(),
   };
   persist(session);

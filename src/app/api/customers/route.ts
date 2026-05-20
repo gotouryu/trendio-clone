@@ -21,10 +21,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const rawSearch = searchParams.get("search")?.toLowerCase() ?? "";
   // PostgREST の or() に直挿入するため構文文字を除去:
-  //  ,()*:% \\ . — PostgREST のフィールド/オペレータ区切り文字
-  //  _ — SQL LIKE のワイルドカード(=任意1文字)、未エスケープなら過剰マッチ
-  // この sanitize がないと "foo,status.eq.admin" や "%" 一文字で別フィルタ差し込み/全件マッチDoSが可能
-  const search = rawSearch.replace(/[,()*:%\\._]/g, "").trim().slice(0, 64);
+  //  ,()*:\\.  — PostgREST のフィールド/オペレータ区切り文字
+  //  %  — SQL LIKE のワイルドカード(=0個以上の任意文字)、未エスケープなら全件マッチDoS
+  // この sanitize がないと "foo,status.eq.admin" や "%" 一文字で別フィルタ差し込み/全件マッチが可能。
+  // 注:_ は本来「アンダースコアを含むハンドル」(=instagram は _ 許可)を検索したい
+  //     正当な入力なので削除せず、LIKE では `\_` でエスケープし「文字としての _」のみマッチさせる。
+  const cleaned = rawSearch.replace(/[,()*:%\\.]/g, "").trim().slice(0, 64);
+  const search = cleaned; // 表示・フィルタロジック用(=元の値、_ を含む)
+  const searchLike = cleaned.replace(/_/g, "\\_"); // PostgREST ilike 用にエスケープ
   const status = searchParams.get("status");
   const tag = searchParams.get("tag");
   const limitRaw = parseInt(searchParams.get("limit") ?? "50", 10);
@@ -60,7 +64,7 @@ export async function GET(req: NextRequest) {
 
   if (search) {
     query = query.or(
-      `instagram_handle.ilike.%${search}%,display_name.ilike.%${search}%`,
+      `instagram_handle.ilike.%${searchLike}%,display_name.ilike.%${searchLike}%`,
     );
   }
   if (status) query = query.eq("status", status);

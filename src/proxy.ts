@@ -12,6 +12,12 @@ const AI_CONTENT_ENABLED = process.env.NEXT_PUBLIC_ENABLE_AI_CONTENT === "true";
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // updateSession を先に走らせ Supabase Auth cookie の rotation を必ず行う。
+  // (=旧実装は /ai-content の 404 を updateSession 前で返していたため、
+  //   ai-content フラグ復活時に当該パスだけ cookie refresh をスキップする
+  //   不整合があった。先に refresh → その後フラグ判定で 404 を返す。)
+  const sessionResponse = await updateSession(request);
+
   // /ai-content と /api/ai-content をフラグ式で 404 化
   // (=URL 直打ち防止、申請審査時の対象外条項(イ・シ・セ)抵触を回避)
   if (
@@ -24,11 +30,13 @@ export async function proxy(request: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
-  return await updateSession(request);
+  return sessionResponse;
 }
 
 export const config = {
+  // _next/data も除外(=RSC payload リクエスト用、ここに proxy を噛ますと
+  // 静的データ取得が壊れる)
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|_next/data|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

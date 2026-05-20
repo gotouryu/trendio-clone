@@ -30,9 +30,18 @@ export async function requireAdmin(): Promise<
   }
   const { data: profile } = await sb
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("id", data.user.id)
     .single();
+  if (profile?.status === "suspended") {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Account suspended" },
+        { status: 403 },
+      ),
+    };
+  }
   if (profile?.role !== "admin") {
     return {
       ok: false,

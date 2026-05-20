@@ -37,7 +37,8 @@ const allTags: CustomerTag[] = [
 ];
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  // 初期値は空。API 接続後に「実データ or mockData フォールバック」を決定
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<CustomerStatus | "all">("all");
   const [tagFilter, setTagFilter] = useState<CustomerTag | "all">("all");
@@ -47,18 +48,27 @@ export default function CustomersPage() {
   useEffect(() => {
     const s = getSession();
     if (s?.displayName) setDisplayName(s.displayName);
-    fetch("/api/customers?limit=200")
-      .then((r) => r.json())
-      .then((j) => {
-        // 本番DBに登録済の顧客があれば実データ、無ければ mockCustomers のまま
-        if (j.customers && j.customers.length > 0) {
-          setCustomers(j.customers as Customer[]);
+    (async () => {
+      try {
+        const r = await fetch("/api/customers?limit=200");
+        // API 到達失敗時のみ mock 表示。到達済 = 本番接続済として 0 件をそのまま表示
+        if (!r.ok) {
+          setCustomers(mockCustomers);
+          return;
         }
-      })
-      .catch(() => {
-        // フォールバック:mockCustomers のまま
-      })
-      .finally(() => setLoading(false));
+        const j = await r.json();
+        if (Array.isArray(j.customers)) {
+          // j.mock === true (=Supabase 未設定) なら API はモックを返す、それでも表示
+          setCustomers(j.customers as Customer[]);
+        } else {
+          setCustomers(mockCustomers);
+        }
+      } catch {
+        setCustomers(mockCustomers);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const filtered = useMemo(() => {

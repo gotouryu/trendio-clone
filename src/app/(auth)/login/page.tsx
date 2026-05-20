@@ -74,13 +74,18 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
+                htmlFor="login-email"
                 className="block text-sm font-medium mb-2"
                 style={{ color: "var(--foreground)" }}
               >
                 メールアドレス
               </label>
               <input
+                id="login-email"
+                name="email"
                 type="email"
+                autoComplete="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
@@ -98,13 +103,18 @@ export default function LoginPage() {
 
             <div>
               <label
+                htmlFor="login-password"
                 className="block text-sm font-medium mb-2"
                 style={{ color: "var(--foreground)" }}
               >
                 パスワード
               </label>
               <input
+                id="login-password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="パスワードを入力"
