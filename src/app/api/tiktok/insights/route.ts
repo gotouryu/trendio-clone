@@ -1,33 +1,58 @@
+/**
+ * GET /api/tiktok/insights
+ *
+ * TikTok user stats を取得。
+ *  - 認証済みユーザーの sns_accounts(platform='tiktok')の access_token を使用
+ *  - クエリ ?accessToken でオーバーライド可(=テスト用)
+ *  - 未接続 / env 未設定なら 0 値で mock=true を返す
+ */
 import { NextResponse, type NextRequest } from "next/server";
 import { hasTikTok } from "@/lib/env";
 import { fetchTikTokUserStats } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { createSupabaseServer } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+const EMPTY_TIKTOK = {
+  followers: 0,
+  likes: 0,
+  videoViews: 0,
+  profileViews: 0,
+};
 
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
-  const accessToken = searchParams.get("accessToken");
+  let accessToken = searchParams.get("accessToken");
+
+  if (!accessToken) {
+    const sb = await createSupabaseServer();
+    if (sb) {
+      const { data } = await sb
+        .from("sns_accounts")
+        .select("access_token")
+        .eq("user_id", auth.userId)
+        .eq("platform", "tiktok")
+        .maybeSingle();
+      if (data) accessToken = data.access_token;
+    }
+  }
 
   if (!hasTikTok() || !accessToken) {
-    return NextResponse.json({
-      followers: 0,
-      likes: 0,
-      videoViews: 0,
-      profileViews: 0,
-      mock: true,
-    });
+    return NextResponse.json({ ...EMPTY_TIKTOK, mock: true });
   }
+
   try {
     const stats = await fetchTikTokUserStats(accessToken);
     return NextResponse.json({ ...stats, mock: false });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "TikTok fetch failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({
+      ...EMPTY_TIKTOK,
+      mock: true,
+      error: e instanceof Error ? e.message : "TikTok fetch failed",
+    });
   }
 }

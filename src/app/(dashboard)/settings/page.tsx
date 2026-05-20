@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Pencil,
   RefreshCw,
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useI18n();
+  const searchParams = useSearchParams();
 
   const [profile, setProfile] = useLocalStorage<Profile>(
     "customercare-settings-profile",
@@ -43,8 +45,10 @@ export default function SettingsPage() {
   );
   const [editing, setEditing] = useState(false);
   const [editingName, setEditingName] = useState(profile.companyName);
-  const [instagramConnected, setInstagramConnected] = useState(true);
+  // 初期は未接続として描画。/api/sns/accounts の結果で確定する
+  const [instagramConnected, setInstagramConnected] = useState(false);
   const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [snsLoading, setSnsLoading] = useState(true);
 
   // 自動応答ルール設定
   const [arSettings, setArSettings] = useState<AutoReplySettings | null>(null);
@@ -79,6 +83,80 @@ export default function SettingsPage() {
         setArSettings(mockAutoReplySettings);
       });
   }, []);
+
+  // SNS 接続状態を取得 + OAuth コールバック後のメッセージ表示
+  const refreshSnsAccounts = useCallback(async () => {
+    setSnsLoading(true);
+    try {
+      const r = await fetch("/api/sns/accounts");
+      if (!r.ok) throw new Error("接続状態取得失敗");
+      const j = (await r.json()) as {
+        accounts: { platform: "instagram" | "tiktok" }[];
+      };
+      setInstagramConnected(j.accounts.some((a) => a.platform === "instagram"));
+      setTiktokConnected(j.accounts.some((a) => a.platform === "tiktok"));
+    } catch {
+      // 取得失敗時は未接続扱い
+      setInstagramConnected(false);
+      setTiktokConnected(false);
+    } finally {
+      setSnsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSnsAccounts();
+  }, [refreshSnsAccounts]);
+
+  // OAuth コールバックからの戻り(=`?connected=instagram` or `?error=xxx`)を検知してトースト
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const err = searchParams.get("error");
+    if (connected === "instagram") toast("Instagramを接続しました", "success");
+    else if (connected === "tiktok") toast("TikTokを接続しました", "success");
+    else if (err) {
+      const msgMap: Record<string, string> = {
+        meta_not_configured: "Meta App が未設定です(.env の META_APP_ID 等を確認)",
+        tiktok_not_configured: "TikTok App が未設定です",
+        state_mismatch: "セキュリティ検証に失敗しました。もう一度お試しください",
+        token_exchange_failed: "トークン交換に失敗しました",
+        no_ig_business_account:
+          "InstagramビジネスアカウントがFacebookページに紐付いていません",
+        db_upsert_failed: "接続情報の保存に失敗しました",
+        missing_code: "認可コードが返ってきませんでした",
+        supabase_not_configured: "Supabase が未設定です",
+      };
+      toast(msgMap[err] ?? `接続エラー: ${err}`, "error");
+    }
+    // URL をきれいにする(=リロード時に同じトーストが出続けないように)
+    if (connected || err) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("connected");
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams, toast]);
+
+  async function disconnectSns(platform: "instagram" | "tiktok") {
+    try {
+      const r = await fetch(`/api/sns/accounts?platform=${platform}`, {
+        method: "DELETE",
+      });
+      if (!r.ok) throw new Error("切断失敗");
+      await refreshSnsAccounts();
+      toast(
+        platform === "instagram"
+          ? "Instagramの接続を解除しました"
+          : "TikTokの接続を解除しました",
+        "info",
+      );
+    } catch (e) {
+      toast(
+        e instanceof Error ? e.message : "切断に失敗しました",
+        "error",
+      );
+    }
+  }
 
   function saveCompany() {
     setProfile((p) => ({ ...p, companyName: editingName }));
@@ -287,7 +365,9 @@ export default function SettingsPage() {
                 Meta 公式 Graph API 経由で Instagram ビジネスアカウントを連携
               </div>
             </div>
-            {instagramConnected ? (
+            {snsLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            ) : instagramConnected ? (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toast("同期を開始しました", "info")}
@@ -297,26 +377,21 @@ export default function SettingsPage() {
                   同期
                 </button>
                 <button
-                  onClick={() => {
-                    setInstagramConnected(false);
-                    toast("Instagramの接続を解除しました", "info");
-                  }}
+                  onClick={() => disconnectSns("instagram")}
                   className="px-3 py-1.5 text-sm text-red-500 hover:text-red-600"
                 >
                   接続解除
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  setInstagramConnected(true);
-                  toast("Instagramに接続しました", "success");
-                }}
+              // Meta OAuth フローへ遷移(=server で META_APP_ID 等の env チェック)
+              <a
+                href="/api/auth/instagram/start"
                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 dark:hover:bg-gray-600"
               >
                 <Link2 className="w-3.5 h-3.5" />
                 接続
-              </button>
+              </a>
             )}
           </div>
         </div>
@@ -343,27 +418,23 @@ export default function SettingsPage() {
                 TikTok API 再申請中、採択後の追加対応予定
               </div>
             </div>
-            {tiktokConnected ? (
+            {snsLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            ) : tiktokConnected ? (
               <button
-                onClick={() => {
-                  setTiktokConnected(false);
-                  toast("TikTokの接続を解除しました", "info");
-                }}
+                onClick={() => disconnectSns("tiktok")}
                 className="px-3 py-1.5 text-sm text-red-500 hover:text-red-600"
               >
                 接続解除
               </button>
             ) : (
-              <button
-                onClick={() => {
-                  setTiktokConnected(true);
-                  toast("TikTokに接続しました", "success");
-                }}
+              <a
+                href="/api/auth/tiktok/start"
                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 dark:hover:bg-gray-600"
               >
                 <Link2 className="w-3.5 h-3.5" />
                 接続
-              </button>
+              </a>
             )}
           </div>
         </div>
