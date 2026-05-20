@@ -22,6 +22,7 @@ import type {
 } from "@/lib/types";
 import { mockCustomers, mockInteractions, mockAIAnalyses } from "@/lib/mockData";
 import { useToast } from "@/components/providers/ToasterProvider";
+import { useI18n } from "@/lib/i18n";
 
 export default function CustomerDetailPage({
   params,
@@ -30,6 +31,7 @@ export default function CustomerDetailPage({
 }) {
   const { id } = use(params);
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [interactions, setInteractions] = useState<CustomerInteraction[]>([]);
   const [byCategory, setByCategory] = useState<Record<InquiryCategory, number> | null>(
@@ -126,7 +128,7 @@ export default function CustomerDetailPage({
       <div className="p-8 max-w-5xl mx-auto">
         <div className="flex items-center gap-2 text-gray-500">
           <Loader2 className="w-4 h-4 animate-spin" />
-          読み込み中...
+          {t("common.loading")}
         </div>
       </div>
     );
@@ -140,11 +142,11 @@ export default function CustomerDetailPage({
           className="text-sm text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 mb-4"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          顧客一覧に戻る
+          {t("customerDetail.back")}
         </Link>
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
           <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">顧客が見つかりません</p>
+          <p className="text-gray-500">{t("customerDetail.notFound")}</p>
         </div>
       </div>
     );
@@ -161,7 +163,7 @@ export default function CustomerDetailPage({
       </Link>
 
       <div className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
-        顧客対応・販売支援プロセス / 顧客カルテ
+        {t("process.title")} / {t("nav.customers")}
       </div>
 
       {/* Customer Header */}
@@ -190,14 +192,14 @@ export default function CustomerDetailPage({
                   key={tag}
                   className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
                 >
-                  {tag}
+                  {t(`customers.tag.${tag}`)}
                 </span>
               ))}
               <StatusPill status={customer.status} />
             </div>
             {customer.notes && (
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 italic">
-                メモ:{customer.notes}
+                {t("customerDetail.notes")}: {customer.notes}
               </p>
             )}
           </div>
@@ -206,22 +208,26 @@ export default function CustomerDetailPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
           <StatTile
             icon={<MessageCircle className="w-4 h-4 text-orange-500" />}
-            label="累計接点"
+            label={t("customers.totalInteractions")}
             value={customer.totalInteractions}
           />
           <StatTile
             icon={<Heart className="w-4 h-4 text-pink-500" />}
-            label="初回接点"
-            value={new Date(customer.firstContactAt).toLocaleDateString("ja-JP")}
+            label={t("customerDetail.stat.firstContact")}
+            value={new Date(customer.firstContactAt).toLocaleDateString(
+              locale === "en" ? "en-US" : "ja-JP",
+            )}
           />
           <StatTile
             icon={<Bookmark className="w-4 h-4 text-blue-500" />}
-            label="最終接点"
-            value={new Date(customer.lastContactAt).toLocaleDateString("ja-JP")}
+            label={t("customers.lastContact")}
+            value={new Date(customer.lastContactAt).toLocaleDateString(
+              locale === "en" ? "en-US" : "ja-JP",
+            )}
           />
           <StatTile
             icon={<UserIcon className="w-4 h-4 text-emerald-500" />}
-            label="属性"
+            label={t("customerDetail.stat.attribute")}
             value={`${customer.gender ?? "—"} / ${customer.ageRange ?? "—"}`}
           />
         </div>
@@ -233,11 +239,11 @@ export default function CustomerDetailPage({
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-              AI 顧客好み分析
+              {t("customerDetail.aiAnalysis.title")}
             </h2>
             {aiCached && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                キャッシュ
+                {t("customerDetail.aiAnalysis.cached")}
               </span>
             )}
           </div>
@@ -252,20 +258,20 @@ export default function CustomerDetailPage({
               <Sparkles className="w-3.5 h-3.5" />
             )}
             {analyzing
-              ? "分析中..."
+              ? t("customerDetail.aiAnalysis.running")
               : aiAnalysis
-                ? "再分析"
-                : "AI分析を実行"}
+                ? t("customerDetail.aiAnalysis.rerun")
+                : t("customerDetail.aiAnalysis.run")}
           </button>
         </div>
         <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-          顧客の過去の接点履歴から、関心領域・対応の注意点・推奨対応をAIが要約します。1顧客につき1日1回まで実行できます。
+          {t("customerDetail.aiAnalysis.desc")}
         </p>
         {aiAnalysis ? (
           <div className="space-y-3">
-            <AnalysisField title="関心領域" content={aiAnalysis.interests} />
-            <AnalysisField title="対応の注意点" content={aiAnalysis.cautions} />
-            <AnalysisField title="推奨対応サマリ" content={aiAnalysis.summary} />
+            <AnalysisField title={t("customerDetail.analysis.interests")} content={aiAnalysis.interests} />
+            <AnalysisField title={t("customerDetail.analysis.cautions")} content={aiAnalysis.cautions} />
+            <AnalysisField title={t("customerDetail.analysis.summary")} content={aiAnalysis.summary} />
             <p className="text-xs text-gray-400 dark:text-gray-500 italic">
               分析実行:{new Date(aiAnalysis.generatedAt).toLocaleString("ja-JP")}
             </p>

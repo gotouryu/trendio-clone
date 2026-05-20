@@ -183,6 +183,18 @@ const dict: Record<Locale, Record<string, string>> = {
     "customerDetail.aiAnalysis.running": "分析中...",
     "customerDetail.interactions": "接点履歴",
     "customerDetail.category": "カテゴリ集計",
+    "customerDetail.notFound": "顧客が見つかりません",
+    "customerDetail.notes": "メモ",
+    "customerDetail.stat.firstContact": "初回接点",
+    "customerDetail.stat.attribute": "属性",
+    "customerDetail.aiAnalysis.cached": "キャッシュ",
+    "customerDetail.aiAnalysis.rerun": "再分析",
+    "customerDetail.aiAnalysis.desc":
+      "顧客の過去の接点履歴から、関心領域・対応の注意点・推奨対応をAIが要約します。1顧客につき1日1回まで実行できます。",
+    "customerDetail.analysis.interests": "関心領域",
+    "customerDetail.analysis.cautions": "対応の注意点",
+    "customerDetail.analysis.summary": "推奨対応サマリ",
+    "customerDetail.analysis.empty": "まだAI分析を実行していません",
 
     // 設定
     "settings.title": "アカウント設定",
@@ -393,6 +405,18 @@ const dict: Record<Locale, Record<string, string>> = {
     "customerDetail.aiAnalysis.running": "Analyzing...",
     "customerDetail.interactions": "Interaction History",
     "customerDetail.category": "By Category",
+    "customerDetail.notFound": "Customer not found",
+    "customerDetail.notes": "Note",
+    "customerDetail.stat.firstContact": "First contact",
+    "customerDetail.stat.attribute": "Demographics",
+    "customerDetail.aiAnalysis.cached": "Cached",
+    "customerDetail.aiAnalysis.rerun": "Re-analyze",
+    "customerDetail.aiAnalysis.desc":
+      "AI summarizes interests, cautions, and recommended approach from the customer's interaction history. Once per customer per day.",
+    "customerDetail.analysis.interests": "Interests",
+    "customerDetail.analysis.cautions": "Cautions",
+    "customerDetail.analysis.summary": "Recommended Approach",
+    "customerDetail.analysis.empty": "AI analysis hasn't been run yet",
 
     // Settings
     "settings.title": "Account Settings",
