@@ -595,22 +595,22 @@ export default function CommentsPage() {
       {activeTab === "list" && selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-full px-4 py-2.5 flex items-center gap-3">
           <span className="text-sm text-gray-700 dark:text-gray-200">
-            選択した {selected.size} 件
+            {t("comments.bulk.selected", { n: selected.size })}
           </span>
           <button
             onClick={bulkArchive}
             className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-xs font-medium"
           >
             <Archive className="w-3.5 h-3.5" />
-            一括アーカイブ
+            {t("comments.bulk.archive")}
           </button>
           <button
             onClick={() => setSelected(new Set())}
             className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center gap-1"
-            aria-label="選択解除"
+            aria-label={t("comments.bulk.deselect")}
           >
             <XIcon className="w-3 h-3" />
-            選択解除
+            {t("comments.bulk.deselect")}
           </button>
         </div>
       )}
@@ -672,16 +672,17 @@ function LogsTab({
   logs: AutoReplyLog[];
   monthlyCount: number;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-center gap-3 flex-wrap">
         <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            今月の自動応答件数:{monthlyCount} 件
+            {t("comments.logs.monthly", { n: monthlyCount })}
           </div>
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-            AIが無人で対応したコメントの履歴(=共P-01 対応漏れの可視化、5年間ログ保管)
+            {t("comments.logs.desc")}
           </div>
         </div>
       </div>
@@ -690,10 +691,10 @@ function LogsTab({
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
           <Sparkles className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400">
-            まだ自動応答のログがありません
+            {t("comments.logs.empty")}
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            自動応答モードをONにすると、AIが応答したコメントがここに記録されます
+            {t("comments.logs.emptyDesc")}
           </p>
         </div>
       ) : (
@@ -704,25 +705,26 @@ function LogsTab({
 }
 
 function LogRow({ log }: { log: AutoReplyLog }) {
+  const { t, locale } = useI18n();
   const triggerLabel = {
-    faq_match: "FAQ自動応答",
-    business_hours_out: "営業時間外応答",
-    manual_trigger: "手動トリガー",
+    faq_match: locale === "en" ? "FAQ Auto-Reply" : "FAQ自動応答",
+    business_hours_out: locale === "en" ? "After-Hours Reply" : "営業時間外応答",
+    manual_trigger: locale === "en" ? "Manual Trigger" : "手動トリガー",
   }[log.triggerReason];
 
   const statusBadge =
     log.status === "sent"
       ? {
-          label: "送信済み",
+          label: locale === "en" ? "Sent" : "送信済み",
           cls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
         }
       : log.status === "blocked_ng"
         ? {
-            label: "NGワード遮断",
+            label: locale === "en" ? "Blocked (NG)" : "NGワード遮断",
             cls: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
           }
         : {
-            label: "失敗",
+            label: locale === "en" ? "Failed" : "失敗",
             cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
           };
 
@@ -765,7 +767,7 @@ function LogRow({ log }: { log: AutoReplyLog }) {
             )}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-            元コメント
+            {t("comments.logs.original")}
           </div>
           <p className="text-sm text-gray-700 dark:text-gray-200 mb-2 bg-gray-50 dark:bg-gray-900 rounded px-3 py-2">
             {log.originalComment}
@@ -773,7 +775,7 @@ function LogRow({ log }: { log: AutoReplyLog }) {
           {log.generatedReply && (
             <>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                AI返信
+                {t("comments.logs.aiReply")}
               </div>
               <p className="text-sm text-gray-800 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-900/20 rounded px-3 py-2">
                 {log.generatedReply}
@@ -791,24 +793,15 @@ function SentimentBadge({
 }: {
   sentiment: "positive" | "neutral" | "negative";
 }) {
-  const map = {
-    positive: {
-      label: "ポジティブ",
-      cls: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
-    },
-    neutral: {
-      label: "中立",
-      cls: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
-    },
-    negative: {
-      label: "ネガティブ",
-      cls: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300",
-    },
-  };
-  const m = map[sentiment];
+  const { t } = useI18n();
+  const cls = {
+    positive: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    neutral: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
+    negative: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+  }[sentiment];
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full ${m.cls}`}>
-      {m.label}
+    <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>
+      {t(`comments.sentiment.${sentiment}`)}
     </span>
   );
 }
@@ -818,21 +811,17 @@ function StatusBadge({
 }: {
   status: "unread" | "replied" | "archived";
 }) {
-  if (status === "unread")
-    return (
-      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-        未対応
-      </span>
-    );
-  if (status === "replied")
-    return (
-      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-        返信済み
-      </span>
-    );
+  const { t } = useI18n();
+  const cls = {
+    unread: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    replied:
+      "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    archived:
+      "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
+  }[status];
   return (
-    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-      アーカイブ
+    <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>
+      {t(`comments.status.${status}`)}
     </span>
   );
 }
@@ -842,17 +831,17 @@ function CategoryBadge({
 }: {
   category: NonNullable<CommentItem["category"]>;
 }) {
-  const map = {
-    product_inquiry: { label: "商品問い合わせ", cls: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" },
-    business_hours: { label: "営業時間", cls: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
-    complaint: { label: "クレーム", cls: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300" },
-    positive: { label: "ポジティブ", cls: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
-    other: { label: "その他", cls: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" },
-  };
-  const m = map[category];
+  const { t } = useI18n();
+  const cls = {
+    product_inquiry: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+    business_hours: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    complaint: "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+    positive: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    other: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
+  }[category];
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full ${m.cls}`}>
-      {m.label}
+    <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>
+      {t(`comments.category.${category}`)}
     </span>
   );
 }
