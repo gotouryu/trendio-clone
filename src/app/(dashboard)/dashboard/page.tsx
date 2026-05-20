@@ -36,6 +36,7 @@ import KarteiaProcessBar, {
   KarteiaWelcomeHeader,
 } from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
+import { useI18n } from "@/lib/i18n";
 import {
   buildDashboardCSV,
   buildDashboardJSON,
@@ -102,6 +103,7 @@ const DEFAULT_ORDER: WidgetKey[] = [
 
 export default function DashboardPage() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [period, setPeriod] = useState("30");
   const [exportOpen, setExportOpen] = useState(false);
   const [order, setOrder] = useLocalStorage<WidgetKey[]>(
@@ -428,12 +430,15 @@ export default function DashboardPage() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       <KarteiaProcessBar current="understand" />
       <KarteiaWelcomeHeader
-        greeting={`お疲れさまです、${displayName}さん ☕️`}
-        title="顧客との接点を、データで支えます ✨"
+        greeting={t("greeting.welcome", { name: displayName })}
+        title={t("dashboard.title")}
         subtitle={
           followerDelta && followerDelta.isUp
-            ? `過去30日間、顧客接点が ${followerDelta.label} 増加しています。いいペースで進んでいます 📈`
-            : `過去30日間の顧客接点の動きを可視化しました。今日も一緒に頑張りましょう`
+            ? t("dashboard.subtitle.withGrowth", {
+                period: t("dashboard.period.30"),
+                delta: followerDelta.label,
+              })
+            : t("dashboard.subtitle.noData")
         }
         rightSlot={
           <div className="flex items-center gap-2 flex-wrap">

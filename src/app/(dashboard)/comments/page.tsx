@@ -26,20 +26,21 @@ import KarteiaProcessBar, {
   KarteiaWelcomeHeader,
 } from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
+import { useI18n } from "@/lib/i18n";
 
 const filterOptions = [
-  { value: "all", label: "すべて" },
-  { value: "today", label: "今日" },
-  { value: "7", label: "過去7日" },
-  { value: "30", label: "過去30日" },
+  { value: "all", labelKey: "comments.filter.all" },
+  { value: "today", labelKey: "comments.filter.today" },
+  { value: "7", labelKey: "comments.filter.7" },
+  { value: "30", labelKey: "comments.filter.30" },
 ];
 
 type SortKey = "newest" | "oldest" | "sentiment";
 
-const sortOptions: { value: SortKey; label: string }[] = [
-  { value: "newest", label: "新しい順" },
-  { value: "oldest", label: "古い順" },
-  { value: "sentiment", label: "感情順" },
+const sortOptions: { value: SortKey; labelKey: string }[] = [
+  { value: "newest", labelKey: "comments.sort.newest" },
+  { value: "oldest", labelKey: "comments.sort.oldest" },
+  { value: "sentiment", labelKey: "comments.sort.sentiment" },
 ];
 
 const sentimentRank: Record<CommentItem["sentiment"], number> = {
@@ -52,6 +53,7 @@ type Tab = "list" | "logs";
 
 export default function CommentsPage() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [query, setQuery] = useState("");
@@ -279,12 +281,12 @@ export default function CommentsPage() {
         const unread = comments.filter((c) => c.status === "unread").length;
         return (
           <KarteiaWelcomeHeader
-            greeting={`お疲れさまです、${displayName}さん ☕️`}
-            title="今日もお客様の声に応えていきましょう ✨"
+            greeting={t("greeting.welcome", { name: displayName })}
+            title={t("comments.title")}
             subtitle={
               unread > 0
-                ? `未対応のコメントが ${unread} 件あります。AI返信案でサクッと返してみませんか?`
-                : `すべて対応済みです 🎉 今日もお疲れさまです`
+                ? t("comments.subtitle.unread", { n: unread })
+                : t("comments.subtitle.allDone")
             }
           />
         );
@@ -312,7 +314,7 @@ export default function CommentsPage() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-                  自動応答モード
+                  {t("comments.autoReplyMode")}
                 </h2>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -321,26 +323,26 @@ export default function CommentsPage() {
                       : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                   }`}
                 >
-                  {autoReplyEnabled ? "ON" : "OFF"}
+                  {autoReplyEnabled ? t("comments.autoReplyOn") : t("comments.autoReplyOff")}
                 </span>
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-xl">
-                ONにすると、設定した営業時間外・FAQ該当コメントにAIが無人で即時応答します(=共P-01 無人受付)。応答ルールは「アカウント設定 → 自動応答ルール設定」で編集できます。
+                {t("comments.autoReplyDesc")}
               </p>
               {settings && autoReplyEnabled && (
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    営業時間: {settings.businessHours.start}–
+                    {t("comments.businessHours")}: {settings.businessHours.start}–
                     {settings.businessHours.end}
                   </span>
                   <span className="flex items-center gap-1">
                     <ListChecks className="w-3 h-3" />
-                    FAQ {settings.faqPatterns.filter((f) => f.enabled).length} 件
+                    {t("comments.faqCount", { n: settings.faqPatterns.filter((f) => f.enabled).length })}
                   </span>
                   <span className="flex items-center gap-1">
                     <ShieldAlert className="w-3 h-3" />
-                    NGワード {settings.ngKeywords.length} 件
+                    {t("comments.ngCount", { n: settings.ngKeywords.length })}
                   </span>
                 </div>
               )}
@@ -372,15 +374,15 @@ export default function CommentsPage() {
         <TabButton
           active={activeTab === "list"}
           onClick={() => setActiveTab("list")}
-          label="コメント一覧"
+          label={t("comments.tab.list")}
           count={comments.filter((c) => c.status === "unread").length}
         />
         <TabButton
           active={activeTab === "logs"}
           onClick={() => setActiveTab("logs")}
-          label="自動応答ログ"
+          label={t("comments.tab.logs")}
           count={monthlyCount}
-          badge={monthlyCount > 0 ? `${monthlyCount}/月` : undefined}
+          badge={monthlyCount > 0 ? `${monthlyCount}` : undefined}
         />
       </div>
 
@@ -394,9 +396,9 @@ export default function CommentsPage() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="本文・ユーザー名で検索..."
+                placeholder={t("comments.search")}
                 className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                aria-label="コメントを検索"
+                aria-label={t("common.search")}
               />
             </div>
             <select
@@ -407,7 +409,7 @@ export default function CommentsPage() {
             >
               {sortOptions.map((s) => (
                 <option key={s.value} value={s.value}>
-                  {s.label}
+                  {t(s.labelKey)}
                 </option>
               ))}
             </select>
@@ -429,13 +431,13 @@ export default function CommentsPage() {
                     : "bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 }`}
               >
-                {o.label}
+                {t(o.labelKey)}
               </button>
             ))}
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            {filtered.length} 件のコメント
+            {t("comments.count", { n: filtered.length })}
           </p>
 
           {/* Comments List */}
@@ -444,7 +446,7 @@ export default function CommentsPage() {
               <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-12 text-center">
                 <MessageCircle className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400">
-                  該当するコメントはありません
+                  {t("comments.empty")}
                 </p>
               </div>
             ) : (
@@ -503,7 +505,7 @@ export default function CommentsPage() {
                           <textarea
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
-                            placeholder="返信を入力..."
+                            placeholder={t("comments.placeholder")}
                             rows={3}
                             className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
@@ -519,17 +521,17 @@ export default function CommentsPage() {
                                 <Sparkles className="w-3.5 h-3.5" />
                               )}
                               {aiGeneratingFor === c.id
-                                ? "生成中..."
-                                : "AI返信案を再生成"}
+                                ? t("comments.aiReply.generating")
+                                : t("comments.aiReply.regenerate")}
                             </button>
                             <button
                               onClick={() => handleReply(c.id)}
                               disabled={!replyText.trim()}
                               className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
-                              aria-label="返信を送信"
+                              aria-label={t("comments.send")}
                             >
                               <Send className="w-3.5 h-3.5" />
-                              返信を送信
+                              {t("comments.send")}
                             </button>
                             <button
                               onClick={() => {
@@ -538,7 +540,7 @@ export default function CommentsPage() {
                               }}
                               className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
                             >
-                              キャンセル
+                              {t("comments.cancel")}
                             </button>
                           </div>
                         </div>
@@ -555,8 +557,8 @@ export default function CommentsPage() {
                               <Sparkles className="w-3 h-3" />
                             )}
                             {aiGeneratingFor === c.id
-                              ? "生成中..."
-                              : "AI返信案を生成"}
+                              ? t("comments.aiReply.generating")
+                              : t("comments.aiReply")}
                           </button>
                           <button
                             onClick={() => {
@@ -566,14 +568,14 @@ export default function CommentsPage() {
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-200"
                           >
                             <Send className="w-3 h-3" />
-                            手動返信
+                            {t("comments.manualReply")}
                           </button>
                           <button
                             onClick={() => handleArchive(c.id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-200"
                           >
                             <Archive className="w-3 h-3" />
-                            アーカイブ
+                            {t("comments.archive")}
                           </button>
                         </div>
                       )}

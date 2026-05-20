@@ -11,6 +11,7 @@
 "use client";
 
 import React from "react";
+import { useI18n } from "@/lib/i18n";
 
 export type ProcessBarStep =
   | "understand"
@@ -19,15 +20,16 @@ export type ProcessBarStep =
   | "sales"
   | "loop";
 
-const STEPS: { key: ProcessBarStep; num: number; label: string }[] = [
-  { key: "understand", num: 1, label: "顧客理解" },
-  { key: "unattended", num: 2, label: "無人受付" },
-  { key: "records", num: 3, label: "顧客カルテ" },
-  { key: "sales", num: 4, label: "販売支援" },
-  { key: "loop", num: 5, label: "改善ループ" },
+const STEPS: { key: ProcessBarStep; num: number; labelKey: string }[] = [
+  { key: "understand", num: 1, labelKey: "process.understand" },
+  { key: "unattended", num: 2, labelKey: "process.unattended" },
+  { key: "records", num: 3, labelKey: "process.records" },
+  { key: "sales", num: 4, labelKey: "process.sales" },
+  { key: "loop", num: 5, labelKey: "process.loop" },
 ];
 
 export default function KarteiaProcessBar({ current }: { current: ProcessBarStep }) {
+  const { t } = useI18n();
   return (
     <div
       className="mb-5 bg-white rounded-2xl border-2 p-3 shadow-sm"
@@ -37,7 +39,7 @@ export default function KarteiaProcessBar({ current }: { current: ProcessBarStep
         className="text-[11px] font-medium mb-2 uppercase tracking-wider"
         style={{ color: "var(--muted)" }}
       >
-        顧客対応・販売支援プロセス
+        {t("process.title")}
       </div>
       <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
         {STEPS.map((step, idx) => {
@@ -71,7 +73,7 @@ export default function KarteiaProcessBar({ current }: { current: ProcessBarStep
                 >
                   {step.num}
                 </span>
-                <span>{step.label}</span>
+                <span>{t(step.labelKey)}</span>
               </div>
               {idx < STEPS.length - 1 && (
                 <span

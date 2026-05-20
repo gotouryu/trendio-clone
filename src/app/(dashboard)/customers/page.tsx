@@ -17,6 +17,7 @@ import KarteiaProcessBar, {
   KarteiaWelcomeHeader,
 } from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
+import { useI18n } from "@/lib/i18n";
 
 const statusOptions: { value: CustomerStatus | "all"; label: string; cls: string }[] = [
   { value: "all", label: "すべて", cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" },
@@ -37,6 +38,7 @@ const allTags: CustomerTag[] = [
 ];
 
 export default function CustomersPage() {
+  const { t } = useI18n();
   // 初期値は空。API 接続後に「実データ or mockData フォールバック」を決定
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,12 +100,16 @@ export default function CustomersPage() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       <KarteiaProcessBar current="records" />
       <KarteiaWelcomeHeader
-        greeting={`お疲れさまです、${displayName}さん ☕️`}
-        title="お客様一人ひとりとの関わりを大切に 💚"
+        greeting={t("greeting.welcome", { name: displayName })}
+        title={t("customers.title")}
         subtitle={
           stats.total > 0
-            ? `現在 ${stats.total} 名のお客様情報を蓄積しています。新規対応待ち ${stats.newCount} 名、要フォロー ${stats.followUpCount} 名`
-            : `まだ顧客情報がありません。Instagram 連携後に自動で蓄積されます`
+            ? t("customers.subtitle.withData", {
+                total: stats.total,
+                newCount: stats.newCount,
+                followUp: stats.followUpCount,
+              })
+            : t("customers.subtitle.noData")
         }
       />
 

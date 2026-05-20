@@ -14,19 +14,22 @@ import {
   Heart,
 } from "lucide-react";
 import { getSession, logout } from "@/lib/authClient";
+import { useI18n } from "@/lib/i18n";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   // Karteia の主要4機能(=共P-01 該当機能、お客様向けラベルに統一)
+  // ラベルは i18n 経由(=Settings の言語切替で英語化、screencast 撮影に必須)
   const navItems = [
-    { href: "/dashboard", label: "顧客理解", Icon: LayoutDashboard },
-    { href: "/comments", label: "無人受付", Icon: MessageCircle },
-    { href: "/customers", label: "顧客カルテ", Icon: Users },
-    { href: "/settings", label: "アカウント設定", Icon: Settings },
+    { href: "/dashboard", labelKey: "nav.dashboard", Icon: LayoutDashboard },
+    { href: "/comments", labelKey: "nav.comments", Icon: MessageCircle },
+    { href: "/customers", labelKey: "nav.customers", Icon: Users },
+    { href: "/settings", labelKey: "nav.settings", Icon: Settings },
   ];
 
   useEffect(() => {
@@ -71,9 +74,9 @@ export default function Sidebar() {
 
       <nav
         className="flex-1 px-3 py-2 space-y-1"
-        aria-label="主要ナビゲーション"
+        aria-label={t("nav.main")}
       >
-        {navItems.map(({ href, label, Icon }) => {
+        {navItems.map(({ href, labelKey, Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -95,7 +98,7 @@ export default function Sidebar() {
               }}
             >
               <Icon className="w-4 h-4" aria-hidden />
-              <span>{label}</span>
+              <span>{t(labelKey)}</span>
             </Link>
           );
         })}
@@ -117,7 +120,7 @@ export default function Sidebar() {
           }
         >
           <LogOut className="w-4 h-4" aria-hidden />
-          <span>ログアウト</span>
+          <span>{t("nav.logout")}</span>
         </button>
       </div>
     </>
@@ -129,7 +132,7 @@ export default function Sidebar() {
         onClick={() => setOpen(true)}
         className="lg:hidden fixed top-3 left-3 z-40 w-10 h-10 rounded-lg bg-white border flex items-center justify-center shadow-sm no-print"
         style={{ borderColor: "var(--card-border)" }}
-        aria-label="メニューを開く"
+        aria-label={t("nav.openMenu")}
       >
         <Menu className="w-5 h-5" style={{ color: "var(--foreground)" }} />
       </button>
@@ -147,13 +150,13 @@ export default function Sidebar() {
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ background: "var(--sidebar-bg)" }}
-        aria-label="モバイルナビゲーション"
+        aria-label={t("nav.mobileNav")}
       >
         <div className="flex justify-end p-2 lg:hidden">
           <button
             onClick={() => setOpen(false)}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-white hover:bg-white/10"
-            aria-label="メニューを閉じる"
+            aria-label={t("nav.closeMenu")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -164,7 +167,7 @@ export default function Sidebar() {
       <aside
         className="hidden lg:flex w-56 flex-col h-screen sticky top-0"
         style={{ background: "var(--sidebar-bg)" }}
-        aria-label="ナビゲーション"
+        aria-label={t("nav.main")}
       >
         {navContent}
       </aside>
