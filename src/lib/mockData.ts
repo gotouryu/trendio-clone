@@ -97,7 +97,7 @@ export const mockComments: CommentItem[] = [
     id: "c1",
     postId: "p1",
     postThumbnail: "/avatars/post-1.svg",
-    author: "ryu_ryu",
+    author: "loyal_customer_01",
     authorAvatar: "/avatars/user-1.svg",
     text: "とても素敵な投稿ですね!参考になります🥰",
     timestamp: "2026-05-19T10:23:00+09:00",
@@ -290,8 +290,8 @@ export const goalOptions: { value: string; label: string }[] = [
 export const mockCustomers: Customer[] = [
   {
     id: "cu1",
-    instagramHandle: "ryu_ryu",
-    displayName: "龍",
+    instagramHandle: "loyal_customer_01",
+    displayName: "Loyal Customer",
     profileImageUrl: "/avatars/user-1.svg",
     firstContactAt: "2026-03-12T10:00:00+09:00",
     lastContactAt: "2026-05-19T10:23:00+09:00",
@@ -767,7 +767,7 @@ export const mockAIAnalyses: Record<string, CustomerAIAnalysis> = {
     cautions:
       "VIP扱いの最重要顧客。手厚い個別フォローを継続することが必須。返信は24時間以内が望ましい。新商品発表前の事前告知でロイヤリティ向上が期待できる。新色追加情報は最優先で個別に共有すると喜ばれる。",
     summary:
-      "龍様は4ヶ月で計8件の接点を持つ最重要顧客。ポジティブなコメントが主体で、新商品リリース時の積極的な反応が特徴。リピート購入の意思が強く、VIP対応を継続することで長期的なファン化と口コミによる紹介効果が見込める。",
+      "本顧客は4ヶ月で計8件の接点を持つ最重要顧客層に該当。ポジティブなコメントが主体で、新商品リリース時の積極的な反応が特徴。リピート購入の意思が強く、VIP対応を継続することで長期的なファン化と口コミによる紹介効果が見込める。",
   },
   cu8: {
     customerId: "cu8",

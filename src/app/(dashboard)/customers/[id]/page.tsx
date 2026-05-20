@@ -20,7 +20,7 @@ import type {
   CustomerAIAnalysis,
   InquiryCategory,
 } from "@/lib/types";
-import { mockCustomers, mockInteractions, mockAIAnalyses } from "@/lib/mockData";
+import { mockCustomers, mockInteractions } from "@/lib/mockData";
 import { useToast } from "@/components/providers/ToasterProvider";
 import { useI18n } from "@/lib/i18n";
 
@@ -43,11 +43,10 @@ export default function CustomerDetailPage({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // AI分析:本番DB未登録顧客 (cu1 等の mock ID) でも画面に分析結果が見えるように
-    // mockAIAnalyses[id] があれば初期表示する(=実データが入ったら API で上書きされる)
-    if (mockAIAnalyses[id]) {
-      setAiAnalysis(mockAIAnalyses[id]);
-    }
+    // Phase 3 Wave-F 修正(=Phase 2-D M8):
+    // 旧実装は mockAIAnalyses[id] を **常に** 初期値として設定していたため、
+    // 本番 DB に存在する顧客でも mock の AI 分析結果が一瞬表示される穴があった。
+    // 現状は本番 DB の取得結果が無いことを確認してから fallback する設計に変更。
     (async () => {
       try {
         const [cResp, iResp] = await Promise.all([

@@ -5,6 +5,7 @@ import { ToasterProvider } from "@/components/providers/ToasterProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
 import CommandPalette from "@/components/CommandPalette";
+import HtmlLangSync from "@/components/HtmlLangSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <ThemeProvider>
           <I18nProvider>
+            <HtmlLangSync />
             <ToasterProvider>
               {children}
               <CommandPalette />

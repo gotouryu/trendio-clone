@@ -798,7 +798,9 @@ function NgKeywordEditor({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            // Phase 3 Wave-F 修正:IME 変換確定の Enter を NG ワード追加にしない
+            // (=日本語 IME 変換中の Enter で未確定文字を誤投入する事故防止)
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();
               add();
             }
