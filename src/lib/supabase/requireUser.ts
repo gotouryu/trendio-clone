@@ -27,12 +27,25 @@ export async function requireUser(): Promise<
       response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
   }
-  const { data: profile } = await sb
+  const { data: profile, error: profileErr } = await sb
     .from("profiles")
     .select("role,status")
     .eq("id", data.user.id)
     .single();
-  if (profile?.status === "suspended") {
+
+  // Phase 3 Wave-C 修正:profile null は fail-closed
+  // (=旧実装は profile null で customer フォールバックしていた=API 直叩きで通る穴があった)
+  if (profileErr || !profile) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Profile not found" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  if (profile.status === "suspended") {
     return {
       ok: false,
       response: NextResponse.json({ error: "Account suspended" }, { status: 403 }),
@@ -41,6 +54,6 @@ export async function requireUser(): Promise<
   return {
     ok: true,
     userId: data.user.id,
-    role: (profile?.role as "customer" | "admin") ?? "customer",
+    role: (profile.role as "customer" | "admin") ?? "customer",
   };
 }
