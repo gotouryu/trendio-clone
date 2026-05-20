@@ -2,30 +2,48 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Caremo ブランドカラーパレット(=W2 トーンダウン版、深いティール基調)
+ * - 主役 brand=teal-600 (#0d9488), brand-dark=teal-700 (#0f766e)
+ * - 背景=ティールグレー (#e6eded) で深みを出しつつ目に優しい
+ * - サイドバー=深いネイビーティール (#0e3a4d)
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #111827;
-  --brand: #10b981;
-  --brand-light: #34d399;
-  --brand-bg: #f0fdf4;
+  --background: #e6eded;
+  --foreground: #0e3a4d;
+  --brand: #0d9488;            /* teal-600 */
+  --brand-light: #14b8a6;      /* teal-500 */
+  --brand-dark: #0f766e;       /* teal-700 */
+  --brand-darker: #134e4a;     /* teal-900 */
+  --brand-bg: #d1ebe6;         /* ティール薄バッジ */
+  --sidebar-bg: #0e3a4d;       /* 深いネイビーティール */
+  --sidebar-fg: #a5c5c0;
   --card: #ffffff;
-  --border: #e5e7eb;
-  --muted: #6b7280;
-  --accent-orange: #f97316;
-  --accent-orange-light: #fed7aa;
+  --card-border: #c2d3d0;      /* ティールグレー境界 */
+  --border: #c2d3d0;
+  --muted: #5a6e6c;
+  --muted-light: #7ba099;
+  --accent-warn: #d97706;      /* アクセント(=増減表示等) */
+  --accent-success: #10b981;
 }
 
 .dark {
-  --background: #0b1220;
-  --foreground: #e5e7eb;
-  --brand: #34d399;
-  --brand-light: #6ee7b7;
-  --brand-bg: #052e1f;
-  --card: #111827;
-  --border: #1f2937;
-  --muted: #9ca3af;
-  --accent-orange: #fb923c;
-  --accent-orange-light: #7c2d12;
+  --background: #0b1f23;
+  --foreground: #d8e8e6;
+  --brand: #14b8a6;
+  --brand-light: #2dd4bf;
+  --brand-dark: #0d9488;
+  --brand-darker: #134e4a;
+  --brand-bg: #134e4a;
+  --sidebar-bg: #061a22;
+  --sidebar-fg: #7ba099;
+  --card: #0f2a30;
+  --card-border: #1c3a40;
+  --border: #1c3a40;
+  --muted: #7ba099;
+  --muted-light: #4a6e6c;
+  --accent-warn: #fbbf24;
+  --accent-success: #34d399;
 }
 
 @theme inline {
@@ -33,12 +51,18 @@
   --color-foreground: var(--foreground);
   --color-brand: var(--brand);
   --color-brand-light: var(--brand-light);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-darker: var(--brand-darker);
   --color-brand-bg: var(--brand-bg);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-fg: var(--sidebar-fg);
   --color-card: var(--card);
+  --color-card-border: var(--card-border);
   --color-border: var(--border);
   --color-muted: var(--muted);
-  --color-accent-orange: var(--accent-orange);
-  --color-accent-orange-light: var(--accent-orange-light);
+  --color-muted-light: var(--muted-light);
+  --color-accent-warn: var(--accent-warn);
+  --color-accent-success: var(--accent-success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -51,10 +75,14 @@ body {
 }
 
 .auth-bg {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
+  background: linear-gradient(135deg, #e6eded 0%, #d1ebe6 50%, #e6eded 100%);
 }
 .dark .auth-bg {
-  background: linear-gradient(135deg, #052e1f 0%, #064e3b 50%, #052e1f 100%);
+  background: linear-gradient(135deg, #0b1f23 0%, #134e4a 50%, #0b1f23 100%);
+}
+
+.caremo-welcome-bg {
+  background: linear-gradient(135deg, #0d9488 0%, #134e4a 100%);
 }
 
 .ig-icon-bg {

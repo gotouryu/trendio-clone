@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { login } from "@/lib/authClient";
 
 export default function LoginPage() {
@@ -12,7 +13,6 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
-
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,31 +40,43 @@ export default function LoginPage() {
   return (
     <div className="auth-bg min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+        <div
+          className="bg-white rounded-2xl shadow-lg border-2 p-8"
+          style={{ borderColor: "var(--card-border)" }}
+        >
           <div className="flex justify-center mb-6">
-            <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-8 h-8 text-emerald-600"
-              >
-                <path
-                  d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"
-                  fill="currentColor"
-                />
-              </svg>
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md"
+              style={{
+                background:
+                  "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+              }}
+            >
+              <Heart
+                className="w-8 h-8 text-white"
+                fill="currentColor"
+              />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100">
-            CustomerCare AI
+          <h1
+            className="text-3xl font-bold text-center"
+            style={{ color: "var(--foreground)" }}
+          >
+            Caremo
           </h1>
-          <p className="text-center text-gray-500 mt-2 mb-6">
-            アカウントにログインしてください
+          <p
+            className="text-center text-sm mt-2 mb-6"
+            style={{ color: "var(--muted)" }}
+          >
+            お疲れさまです。アカウントにログインしてください ☕️
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: "var(--foreground)" }}
+              >
                 メールアドレス
               </label>
               <input
@@ -72,12 +84,23 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400"
+                style={
+                  {
+                    borderColor: "var(--card-border)",
+                    color: "var(--foreground)",
+                    background: "white",
+                    "--tw-ring-color": "var(--brand)",
+                  } as React.CSSProperties
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: "var(--foreground)" }}
+              >
                 パスワード
               </label>
               <input
@@ -85,46 +108,64 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="パスワードを入力"
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400"
+                style={
+                  {
+                    borderColor: "var(--card-border)",
+                    color: "var(--foreground)",
+                    background: "white",
+                  } as React.CSSProperties
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label
+                className="flex items-center gap-2 text-sm"
+                style={{ color: "var(--muted)" }}
+              >
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="rounded border-gray-300"
+                  style={{ accentColor: "var(--brand)" }}
                 />
                 ログイン状態を維持
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                className="text-sm font-medium"
+                style={{ color: "var(--brand-dark)" }}
               >
                 パスワードをお忘れですか?
               </Link>
             </div>
 
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label
+              className="flex items-start gap-2 text-sm"
+              style={{ color: "var(--muted)" }}
+            >
               <input
                 type="checkbox"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="mt-1 rounded border-gray-300"
+                style={{ accentColor: "var(--brand)" }}
               />
               <span>
                 <Link
                   href="/terms"
-                  className="text-emerald-600 hover:text-emerald-700"
+                  className="font-medium"
+                  style={{ color: "var(--brand-dark)" }}
                 >
                   利用規約
                 </Link>
                 {" と "}
                 <Link
                   href="/privacy"
-                  className="text-emerald-600 hover:text-emerald-700"
+                  className="font-medium"
+                  style={{ color: "var(--brand-dark)" }}
                 >
                   プライバシーポリシー
                 </Link>
@@ -133,7 +174,14 @@ export default function LoginPage() {
             </label>
 
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+              <div
+                className="text-sm p-3 rounded-lg"
+                style={{
+                  color: "#b91c1c",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                }}
+              >
                 {error}
               </div>
             )}
@@ -141,29 +189,45 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
+              className="w-full text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              style={{
+                background:
+                  "linear-gradient(135deg, #0d9488 0%, #134e4a 100%)",
+              }}
             >
               {submitting ? "ログイン中..." : "ログイン"}
             </button>
 
-            <p className="text-center text-sm text-gray-600">
+            <p
+              className="text-center text-sm"
+              style={{ color: "var(--muted)" }}
+            >
               アカウントは管理者から発行されます
             </p>
           </form>
         </div>
 
-        <div className="flex justify-center gap-6 mt-6 text-sm text-gray-500">
-          <Link href="/privacy" className="hover:text-gray-700">
+        <div
+          className="flex justify-center gap-6 mt-6 text-sm"
+          style={{ color: "var(--muted)" }}
+        >
+          <Link href="/privacy" className="hover:underline">
             プライバシーポリシー
           </Link>
           <span>•</span>
-          <Link href="/terms" className="hover:text-gray-700">
+          <Link href="/terms" className="hover:underline">
             利用規約
           </Link>
           <span>•</span>
-          <Link href="/support" className="hover:text-gray-700">
+          <Link href="/support" className="hover:underline">
             サポート
           </Link>
+        </div>
+        <div
+          className="text-center mt-3 text-xs"
+          style={{ color: "var(--muted-light)" }}
+        >
+          提供:株式会社ヘリックスプラス
         </div>
       </div>
     </div>

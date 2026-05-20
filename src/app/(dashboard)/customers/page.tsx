@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import type { Customer, CustomerStatus, CustomerTag } from "@/lib/types";
 import { mockCustomers } from "@/lib/mockData";
+import CaremoProcessBar, {
+  CaremoWelcomeHeader,
+} from "@/components/CaremoProcessBar";
 
 const statusOptions: { value: CustomerStatus | "all"; label: string; cls: string }[] = [
   { value: "all", label: "すべて", cls: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" },
@@ -76,18 +79,16 @@ export default function CustomersPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-md mb-2">
-          ★共P-01 該当機能 — 顧客行動履歴・CRM★
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          顧客カルテ
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          SNS経由で発生した全ての顧客接点を一元管理(=機能② 顧客カルテ・顧客接点蓄積機能)
-        </p>
-      </div>
+      <CaremoProcessBar current="records" />
+      <CaremoWelcomeHeader
+        greeting="お疲れさまです、龍さん ☕️"
+        title="お客様一人ひとりとの関わりを大切に 💚"
+        subtitle={
+          stats.total > 0
+            ? `現在 ${stats.total} 名のお客様情報を蓄積しています。新規対応待ち ${stats.newCount} 名、要フォロー ${stats.followUpCount} 名`
+            : `まだ顧客情報がありません。Instagram 連携後に自動で蓄積されます`
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

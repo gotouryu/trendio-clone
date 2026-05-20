@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Trendio API取得パターン フローチャート</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    background: #f7f9fc;
+    color: #1a1a2e;
+    margin: 0;
+    padding: 24px 16px;
+    line-height: 1.7;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 32px 16px 24px;
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    color: white;
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+  header h1 { margin: 0 0 8px; font-size: 26px; }
+  header .subtitle { font-size: 14px; opacity: 0.9; }
+
+  h2 {
+    font-size: 22px;
+    margin: 40px 0 16px;
+    padding-left: 14px;
+    border-left: 6px solid #0f3460;
+  }
+
+  .step-question {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .flow-box {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow-x: auto;
+  }
+  .mermaid { text-align: center; }
+
+  .patterns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+  }
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border-top: 6px solid #ccc;
+    position: relative;
+  }
+  .card.recommended { border-top-color: #2d8659; background: #f0faf4; }
+  .card.runner-up { border-top-color: #3b82f6; }
+  .card.safe { border-top-color: #b8860b; }
+  .card.warning { border-top-color: #d97706; }
+  .card.danger { border-top-color: #a32638; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .badge.recommended { background: #2d8659; color: white; }
+  .badge.runner-up { background: #3b82f6; color: white; }
+  .badge.safe { background: #b8860b; color: white; }
+  .badge.warning { background: #d97706; color: white; }
+  .badge.danger { background: #a32638; color: white; }
+
+  .card h3 { margin: 4px 0 12px; font-size: 18px; }
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+  }
+  .meta-row:last-child { border-bottom: none; }
+  .meta-label { color: #6b7280; }
+  .meta-value { font-weight: bold; }
+  .time-fast { color: #2d8659; }
+  .time-medium { color: #b8860b; }
+  .time-slow { color: #a32638; }
+  .risk-low { color: #2d8659; }
+  .risk-mid { color: #b8860b; }
+  .risk-high { color: #a32638; }
+
+  .pros-cons {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .pros { color: #2d8659; margin: 4px 0; }
+  .cons { color: #a32638; margin: 4px 0; }
+
+  .ranking-table {
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-collapse: collapse;
+  }
+  .ranking-table th, .ranking-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .ranking-table th {
+    background: #0f3460;
+    color: white;
+    font-size: 14px;
+  }
+  .ranking-table tr:last-child td { border-bottom: none; }
+  .rank-1 { background: #f0faf4; }
+  .rank-2 { background: #eff6ff; }
+
+  .question-block {
+    background: #fffbeb;
+    border-left: 5px solid #d97706;
+    padding: 18px;
+    border-radius: 10px;
+    margin: 16px 0;
+  }
+  .question-block h4 { margin: 0 0 8px; font-size: 16px; color: #d97706; }
+  .question-block ul { margin: 8px 0 0 20px; padding: 0; }
+  .question-block li { margin: 4px 0; }
+
+  .next-action {
+    background: linear-gradient(135deg, #2d8659 0%, #1f5f3f 100%);
+    color: white;
+    padding: 24px;
+    border-radius: 14px;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .next-action h2 {
+    border-left: none;
+    color: white;
+    margin: 0 0 16px;
+    padding-left: 0;
+  }
+  .next-action .big {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 8px 0;
+  }
+
+  footer {
+    text-align: center;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  @media print {
+    body { background: white; }
+    .card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Trendio → ケアモ へのAPI取得パターン</h1>
+  <div class="subtitle">5パターンを視覚的に比較・最速ルートを判断する資料</div>
+  <div class="subtitle">作成日:2026年5月20日 / 株式会社ヘリックスプラス</div>
+</header>
+
+<h2>STEP 1:現状の整理</h2>
+<div class="step-question">
+  <p style="margin:0;font-size:15px;">
+    <strong>事実:</strong>別会社が開発中だった「Trendio」の Meta アプリは <strong>既に Instagram Graph API 審査完了済み</strong>。
+    ヘリックスプラスが UI を作り直して「<strong>ケアモ</strong>」として展開予定。
+    審査期間(=新規申請なら2〜4週間)を <strong>できるだけ短縮</strong> したい。
+  </p>
+</div>
+
+<h2>STEP 2:判断フローチャート</h2>
+<div class="flow-box">
+<pre class="mermaid">
+flowchart TD
+    Start([現状:他社が Trendio API 取得済み]) --> Q1
+    Q1{他社の協力<br/>得られる?}
+    Q1 -->|No| P3
+    Q1 -->|Yes| Q2
+    Q2{Meta認証画面に<br/>『Trendio』表示でOK?}
+    Q2 -->|Yes| P2
+    Q2 -->|No| Q3
+    Q3{時間に余裕<br/>あるか?}
+    Q3 -->|急ぎ| P5
+    Q3 -->|2〜3週間OK| Q4
+    Q4{他社が改名作業を<br/>引き受けてくれる?}
+    Q4 -->|Yes| P4
+    Q4 -->|No| P1
+
+    P1[パターン1<br/>譲渡+名前変更<br/>1〜3週間]
+    P2[★パターン2★<br/>譲渡+名前そのまま<br/>数日〜1週間]
+    P3[パターン3<br/>新規申請<br/>6〜9週間]
+    P4[パターン4<br/>他社改名後譲渡<br/>3〜4週間]
+    P5[パターン5<br/>共同所有<br/>即日〜数日]
+
+    style P2 fill:#2d8659,color:#fff,stroke:#1f5f3f,stroke-width:3px
+    style P1 fill:#3b82f6,color:#fff
+    style P3 fill:#b8860b,color:#fff
+    style P4 fill:#d97706,color:#fff
+    style P5 fill:#a32638,color:#fff
+    style Start fill:#0f3460,color:#fff
+    style Q1 fill:#fffbeb,color:#0f3460,stroke:#d97706
+    style Q2 fill:#fffbeb,color:#0f3460,stroke:#d97706
+    style Q3 fill:#fffbeb,color:#0f3460,stroke:#d97706
+    style Q4 fill:#fffbeb,color:#0f3460,stroke:#d97706
+</pre>
+</div>
+
+<h2>STEP 3:5パターンの詳細カード</h2>
+<div class="patterns">
+
+  <div class="card recommended">
+    <span class="badge recommended">★ 推奨 1位</span>
+    <h3>パターン2:譲渡 + 名前そのまま</h3>
+    <div class="meta-row">
+      <span class="meta-label">所要時間</span>
+      <span class="meta-value time-fast">数日〜1週間</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">再審査リスク</span>
+      <span class="meta-value risk-low">低</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">他社との関係</span>
+      <span class="meta-value">譲渡契約必要</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">法的安全性</span>
+      <span class="meta-value">◎</span>
+    </div>
+    <div class="pros-cons">
+      <div class="pros">◯ Meta側で何も変えないため、再審査リスクほぼゼロ</div>
+      <div class="pros">◯ お客様向けの表ブランドは「ケアモ」、裏側は「Trendio」のまま</div>
+      <div class="cons">× Meta認証画面で「Trendio がアクセスを求めています」と表示される</div>
+      <div class="cons">× 他社との譲渡契約・費用交渉が必要</div>
+    </div>
+  </div>
+
+  <div class="card runner-up">
+    <span class="badge runner-up">2位</span>
+    <h3>パターン1:譲渡 + 名前変更(完全リブランド)</h3>
+    <div class="meta-row">
+      <span class="meta-label">所要時間</span>
+      <span class="meta-value time-medium">1〜3週間</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">再審査リスク</span>
+      <span class="meta-value risk-mid">中〜高</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">他社との関係</span>
+      <span class="meta-value">譲渡契約必要</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">法的安全性</span>
+      <span class="meta-value">◎</span>
+    </div>
+    <div class="pros-cons">
+      <div class="pros">◯ Meta認証画面でも「ケアモ」と表示される(ブランド統一)</div>
+      <div class="pros">◯ 完全にケアモとして運営可能</div>
+      <div class="cons">× 名前+ドメイン+ポリシー全変更 → Metaが「実質別アプリ」と判断する可能性</div>
+      <div class="cons">× 再審査要求があれば +2〜4週間</div>
+    </div>
+  </div>
+
+  <div class="card safe">
+    <span class="badge safe">3位</span>
+    <h3>パターン3:新規申請(他社と切り離し)</h3>
+    <div class="meta-row">
+      <span class="meta-label">所要時間</span>
+      <span class="meta-value time-slow">6〜9週間</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">再審査リスク</span>
+      <span class="meta-value risk-low">なし</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">他社との関係</span>
+      <span class="meta-value">不要</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">法的安全性</span>
+      <span class="meta-value">◎</span>
+    </div>
+    <div class="pros-cons">
+      <div class="pros">◯ 他社との交渉不要、完全に自社管理</div>
+      <div class="pros">◯ 法的・契約的に最もクリア</div>
+      <div class="cons">× 一番時間がかかる(=最大2ヶ月)</div>
+      <div class="cons">× 他社の取得済みAPIが無駄になる</div>
+    </div>
+  </div>
+
+  <div class="card warning">
+    <span class="badge warning">4位</span>
+    <h3>パターン4:他社が改名後に譲渡</h3>
+    <div class="meta-row">
+      <span class="meta-label">所要時間</span>
+      <span class="meta-value time-medium">3〜4週間</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">再審査リスク</span>
+      <span class="meta-value risk-mid">中</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">他社との関係</span>
+      <span class="meta-value">深い協力必須</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">法的安全性</span>
+      <span class="meta-value">◎</span>
+    </div>
+    <div class="pros-cons">
+      <div class="pros">◯ 譲渡時点で名前が既に「ケアモ」</div>
+      <div class="pros">◯ ヘリックスプラスがブランドの一貫性を保てる</div>
+      <div class="cons">× 他社が改名作業+その間の再審査対応を引き受ける必要</div>
+      <div class="cons">× 他社のリソース拘束・費用上乗せ・時間中途半端</div>
+    </div>
+  </div>
+
+  <div class="card danger">
+    <span class="badge danger">5位(非推奨)</span>
+    <h3>パターン5:共同所有(管理者ロール追加)</h3>
+    <div class="meta-row">
+      <span class="meta-label">所要時間</span>
+      <span class="meta-value time-fast">即日〜数日</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">再審査リスク</span>
+      <span class="meta-value risk-low">なし</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">他社との関係</span>
+      <span class="meta-value">継続関係必要</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">法的安全性</span>
+      <span class="meta-value risk-high">△</span>
+    </div>
+    <div class="pros-cons">
+      <div class="pros">◯ 最速(=数日で本番運用可能)</div>
+      <div class="pros">◯ 譲渡費用ゼロの可能性</div>
+      <div class="cons">× アプリ所有者は他社のまま=他社の都合で停止リスク</div>
+      <div class="cons">× 個人情報保護法的にグレー(=お客様データ責任が曖昧)</div>
+      <div class="cons">× Meta規約上「商用利用は登録事業者専用」が原則</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>STEP 4:推奨ランキング表</h2>
+<table class="ranking-table">
+  <tr>
+    <th style="width:8%;">順位</th>
+    <th style="width:25%;">パターン</th>
+    <th style="width:15%;">所要時間</th>
+    <th style="width:12%;">再審査</th>
+    <th style="width:40%;">推奨理由</th>
+  </tr>
+  <tr class="rank-1">
+    <td><strong>★1位</strong></td>
+    <td><strong>パターン2</strong><br>譲渡+名前そのまま</td>
+    <td><strong style="color:#2d8659;">数日〜1週間</strong></td>
+    <td>低</td>
+    <td>最速かつ法的安全、再審査リスクなし</td>
+  </tr>
+  <tr class="rank-2">
+    <td>2位</td>
+    <td>パターン1<br>譲渡+完全リブランド</td>
+    <td>1〜3週間</td>
+    <td>中〜高</td>
+    <td>法的安全、ただしMeta再審査の可能性</td>
+  </tr>
+  <tr>
+    <td>3位</td>
+    <td>パターン3<br>新規申請</td>
+    <td>6〜9週間</td>
+    <td>なし</td>
+    <td>時間はかかるが確実、他社の協力不要</td>
+  </tr>
+  <tr>
+    <td>4位</td>
+    <td>パターン4<br>他社改名後譲渡</td>
+    <td>3〜4週間</td>
+    <td>中</td>
+    <td>中途半端、リスクと時間のバランス悪い</td>
+  </tr>
+  <tr>
+    <td>5位</td>
+    <td>パターン5<br>共同所有</td>
+    <td>即日〜数日</td>
+    <td>なし</td>
+    <td>速いが法的グレー、龍様の事業として勧めにくい</td>
+  </tr>
+</table>
+
+<h2>STEP 5:龍様への確認質問(=次の指示を出すための3問)</h2>
+
+<div class="question-block">
+  <h4>Q1. 他社との関係性は?</h4>
+  <ul>
+    <li>A. 業務委託で開発依頼していた(=ヘリックスプラスが委託元)</li>
+    <li>B. 共同開発(=対等な関係)</li>
+    <li>C. 他社の自社開発を購入する形</li>
+    <li>D. その他(=具体的に教えてください)</li>
+  </ul>
+</div>
+
+<div class="question-block">
+  <h4>Q2. 他社の協力は得られそうか?</h4>
+  <ul>
+    <li>A. 譲渡に協力してくれる前提(=既に話がついている)</li>
+    <li>B. これから交渉する(=可能性はある)</li>
+    <li>C. 協力が得られるか不明(=この場合はパターン3に強制)</li>
+  </ul>
+</div>
+
+<div class="question-block">
+  <h4>Q3. お客様が Meta 認証画面で「Trendio」と見えることは許容できる?</h4>
+  <ul>
+    <li>A. 許容できる(=パターン2でOK、最速)</li>
+    <li>B. 絶対に「ケアモ」と表示したい(=パターン1または4)</li>
+  </ul>
+</div>
+
+<div class="next-action">
+  <h2>ドビーから龍様への一言推奨</h2>
+  <div class="big">パターン2:譲渡 + 名前そのまま</div>
+  <div>所要 数日〜1週間 / 再審査リスク低 / 最速で本番運用</div>
+  <div style="margin-top:14px;font-size:13px;opacity:0.95;">
+    Q1〜Q3 にお答えいただければ、具体的な手順書を次に作成します。
+  </div>
+</div>
+
+<footer>
+  本資料は 2026年5月20日時点の公式情報・業界経験則に基づきます。<br>
+  Meta公式に明示なしの部分は【推論】として記載。
+</footer>
+
+</div>
+
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
+</body>
+</html>

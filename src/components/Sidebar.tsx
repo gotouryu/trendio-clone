@@ -11,23 +11,22 @@ import {
   LogOut,
   Menu,
   X,
+  Heart,
 } from "lucide-react";
 import { getSession, logout } from "@/lib/authClient";
-import { useI18n } from "@/lib/i18n";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { t } = useI18n();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  // 申請審査対象の4機能のみサイドバーに表示する(=AI Content・Discover Trends は非表示)
+  // Caremo の主要4機能(=共P-01 該当機能、お客様向けラベルに統一)
   const navItems = [
-    { href: "/dashboard", label: t("nav.dashboard"), Icon: LayoutDashboard },
-    { href: "/comments", label: t("nav.comments"), Icon: MessageCircle },
-    { href: "/customers", label: t("nav.customers"), Icon: Users },
-    { href: "/settings", label: t("nav.settings"), Icon: Settings },
+    { href: "/dashboard", label: "顧客理解", Icon: LayoutDashboard },
+    { href: "/comments", label: "無人受付", Icon: MessageCircle },
+    { href: "/customers", label: "顧客カルテ", Icon: Users },
+    { href: "/settings", label: "アカウント設定", Icon: Settings },
   ];
 
   useEffect(() => {
@@ -47,59 +46,78 @@ export default function Sidebar() {
   const navContent = (
     <>
       <div className="px-5 py-5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="w-5 h-5 text-emerald-600 dark:text-emerald-400"
-          >
-            <path
-              d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"
-              fill="currentColor"
-            />
-          </svg>
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+          }}
+        >
+          <Heart className="w-5 h-5 text-white" fill="currentColor" />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm">
-            CustomerCare AI
+          <div className="font-bold text-white text-base tracking-wide">
+            Caremo
           </div>
           {companyName && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <div
+              className="text-xs truncate"
+              style={{ color: "var(--sidebar-fg)" }}
+            >
               {companyName}
             </div>
           )}
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-2 space-y-1" aria-label="主要ナビゲーション">
+      <nav
+        className="flex-1 px-3 py-2 space-y-1"
+        aria-label="主要ナビゲーション"
+      >
         {navItems.map(({ href, label, Icon }) => {
-          const active =
-            pathname === href || pathname.startsWith(href + "/");
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                active
-                  ? "bg-gray-900 dark:bg-emerald-700 text-white"
-                  : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
+              style={{
+                background: active ? "#0d9488" : "transparent",
+                color: active ? "#ffffff" : "var(--sidebar-fg)",
+                fontWeight: active ? 600 : 400,
+              }}
+              onMouseEnter={(e) => {
+                if (!active)
+                  e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
             >
               <Icon className="w-4 h-4" aria-hidden />
-              <span className="font-medium">{label}</span>
+              <span>{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-gray-100 dark:border-gray-800">
+      <div
+        className="px-3 py-4 border-t"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+      >
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
+          style={{ color: "var(--sidebar-fg)" }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "transparent")
+          }
         >
           <LogOut className="w-4 h-4" aria-hidden />
-          <span>{t("nav.logout")}</span>
+          <span>ログアウト</span>
         </button>
       </div>
     </>
@@ -109,10 +127,11 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-40 w-10 h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-sm no-print"
+        className="lg:hidden fixed top-3 left-3 z-40 w-10 h-10 rounded-lg bg-white border flex items-center justify-center shadow-sm no-print"
+        style={{ borderColor: "var(--card-border)" }}
         aria-label="メニューを開く"
       >
-        <Menu className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+        <Menu className="w-5 h-5" style={{ color: "var(--foreground)" }} />
       </button>
 
       {open && (
@@ -124,25 +143,27 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`lg:hidden fixed top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-200 no-print ${
+        className={`lg:hidden fixed top-0 left-0 z-50 h-screen w-64 flex flex-col transition-transform duration-200 no-print ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ background: "var(--sidebar-bg)" }}
         aria-label="モバイルナビゲーション"
       >
         <div className="flex justify-end p-2 lg:hidden">
           <button
             onClick={() => setOpen(false)}
-            className="w-9 h-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-white hover:bg-white/10"
             aria-label="メニューを閉じる"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <X className="w-5 h-5" />
           </button>
         </div>
         {navContent}
       </aside>
 
       <aside
-        className="hidden lg:flex w-52 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col h-screen sticky top-0"
+        className="hidden lg:flex w-56 flex-col h-screen sticky top-0"
+        style={{ background: "var(--sidebar-bg)" }}
         aria-label="ナビゲーション"
       >
         {navContent}

@@ -32,6 +32,9 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/components/providers/ToasterProvider";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import CaremoProcessBar, {
+  CaremoWelcomeHeader,
+} from "@/components/CaremoProcessBar";
 import {
   buildDashboardCSV,
   buildDashboardJSON,
@@ -417,70 +420,78 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-md mb-2">
-            ★共P-01 該当機能 — 顧客理解・属性分析★
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            ダッシュボード
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            顧客接点の属性・時系列・対応状況を可視化(=機能③ 顧客接点分析)
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 pr-9 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              aria-label="期間を選択"
-            >
-              {periodOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setExportOpen((o) => !o)}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-              aria-haspopup="menu"
-              aria-expanded={exportOpen}
-            >
-              <Download className="w-4 h-4" />
-              エクスポート
-              <ChevronDown className="w-3 h-3" />
-            </button>
-            {exportOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 py-1"
-                role="menu"
+      <CaremoProcessBar current="understand" />
+      <CaremoWelcomeHeader
+        greeting="お疲れさまです、龍さん ☕️"
+        title="顧客との接点を、データで支えます ✨"
+        subtitle={
+          followerDelta && followerDelta.isUp
+            ? `過去30日間、顧客接点が ${followerDelta.label} 増加しています。いいペースで進んでいます 📈`
+            : `過去30日間の顧客接点の動きを可視化しました。今日も一緒に頑張りましょう`
+        }
+        rightSlot={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="appearance-none rounded-lg px-4 py-2 pr-9 text-sm font-medium focus:outline-none focus:ring-2"
+                style={{
+                  background: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                }}
+                aria-label="期間を選択"
               >
-                <button
-                  onClick={exportCSV}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  role="menuitem"
+                {periodOptions.map((o) => (
+                  <option
+                    key={o.value}
+                    value={o.value}
+                    style={{ color: "#0e3a4d" }}
+                  >
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white pointer-events-none" />
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setExportOpen((o) => !o)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow"
+                style={{ background: "white", color: "#0f766e" }}
+                aria-haspopup="menu"
+                aria-expanded={exportOpen}
+              >
+                <Download className="w-4 h-4" />
+                エクスポート
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {exportOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1"
+                  role="menu"
                 >
-                  CSV(Excel互換)
-                </button>
-                <button
-                  onClick={exportJSON}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  role="menuitem"
-                >
-                  JSON
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={exportCSV}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    role="menuitem"
+                  >
+                    CSV(Excel互換)
+                  </button>
+                  <button
+                    onClick={exportJSON}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    role="menuitem"
+                  >
+                    JSON
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Instagram Section */}
       <section className="mb-8">

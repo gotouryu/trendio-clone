@@ -18,6 +18,9 @@ import {
 import { mockComments } from "@/lib/mockData";
 import type { CommentItem, AutoReplyLog, AutoReplySettings } from "@/lib/types";
 import { useToast } from "@/components/providers/ToasterProvider";
+import CaremoProcessBar, {
+  CaremoWelcomeHeader,
+} from "@/components/CaremoProcessBar";
 
 const filterOptions = [
   { value: "all", label: "すべて" },
@@ -235,18 +238,21 @@ export default function CommentsPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-md mb-2">
-          ★共P-01 該当機能 — 無人受付★
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          コメント管理
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          SNS上のコメントへのAI返信生成と自動応答モード(=機能① AI顧客応答機能)
-        </p>
-      </div>
+      <CaremoProcessBar current="unattended" />
+      {(() => {
+        const unread = comments.filter((c) => c.status === "unread").length;
+        return (
+          <CaremoWelcomeHeader
+            greeting="お疲れさまです、龍さん ☕️"
+            title="今日もお客様の声に応えていきましょう ✨"
+            subtitle={
+              unread > 0
+                ? `未対応のコメントが ${unread} 件あります。AI返信案でサクッと返してみませんか?`
+                : `すべて対応済みです 🎉 今日もお疲れさまです`
+            }
+          />
+        );
+      })()}
 
       {/* Auto-Reply Mode Toggle */}
       <div

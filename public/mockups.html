@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CustomerCare AI — W2 トーンダウン版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', 'Inter', system-ui, -apple-system, sans-serif; }
+    .kpi-num { font-feature-settings: "tnum"; }
+    .chart-line { fill: none; stroke-width: 2.5; }
+    .card-hover:hover { transform: translateY(-2px); transition: transform .2s; }
+  </style>
+</head>
+<body style="background: #d8e0e0; min-height: 100vh; padding: 1rem;">
+
+  <div class="max-w-7xl mx-auto mb-4 bg-white rounded-2xl shadow-lg p-3 flex items-center gap-3 flex-wrap">
+    <div class="font-semibold text-sm" style="color: #0e3a4d;">最終案:</div>
+    <span class="px-3 py-1 rounded-full text-xs font-medium text-white" style="background: #0d9488;">ピュア・ターコイズ(トーンダウン版)</span>
+    <div class="ml-auto text-xs text-gray-500">※ 補助金審査用語(共P-01)を削除、色を落ち着いた深いトーンに調整。</div>
+  </div>
+
+  <div class="max-w-7xl mx-auto">
+    <div class="rounded-2xl shadow-md overflow-hidden flex" style="background: #e6eded; min-height: 760px;">
+      <!-- サイドバー:深いネイビーティール -->
+      <aside class="w-56 p-5" style="background: #0e3a4d; color: white;">
+        <div class="flex items-center gap-2 mb-8">
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: #0d9488;">
+            <span class="text-white font-bold text-sm">CC</span>
+          </div>
+          <div>
+            <div class="font-semibold text-white text-sm">CustomerCare AI</div>
+            <div class="text-xs" style="color: #8eb4af;">Helix Plus</div>
+          </div>
+        </div>
+        <nav class="space-y-1 text-sm">
+          <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white font-medium" style="background: #0d9488;">
+            <span class="w-4 h-4">📊</span>顧客理解
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10" style="color: #a5c5c0;">
+            <span class="w-4 h-4">💬</span>無人受付
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10" style="color: #a5c5c0;">
+            <span class="w-4 h-4">👥</span>顧客カルテ
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10" style="color: #a5c5c0;">
+            <span class="w-4 h-4">⚙️</span>設定
+          </a>
+        </nav>
+      </aside>
+
+      <main class="flex-1 p-8">
+        <!-- 顧客対応・販売支援プロセス(=「共P-01」表記なし、シンプル) -->
+        <div class="mb-5 bg-white rounded-2xl border-2 p-3 shadow-sm" style="border-color: #c2d3d0;">
+          <div class="text-[11px] font-medium mb-2 uppercase tracking-wider" style="color: #5a6e6c;">顧客対応・販売支援プロセス</div>
+          <div class="flex items-center gap-1">
+            <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-full text-white shadow-sm" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);">
+              <span class="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-bold" style="color: #0f766e;">1</span>
+              <span class="text-xs font-medium">顧客理解</span>
+            </div>
+            <div style="color: #7ba099;">→</div>
+            <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-full border-2" style="background: #f1f6f5; color: #5a6e6c; border-color: #c2d3d0;">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background: #7ba099;">2</span>
+              <span class="text-xs font-medium">無人受付</span>
+            </div>
+            <div style="color: #7ba099;">→</div>
+            <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-full border-2" style="background: #f1f6f5; color: #5a6e6c; border-color: #c2d3d0;">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background: #7ba099;">3</span>
+              <span class="text-xs font-medium">顧客カルテ</span>
+            </div>
+            <div style="color: #7ba099;">→</div>
+            <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-full border-2" style="background: #f1f6f5; color: #5a6e6c; border-color: #c2d3d0;">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background: #7ba099;">4</span>
+              <span class="text-xs font-medium">販売支援</span>
+            </div>
+            <div style="color: #7ba099;">→</div>
+            <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-full border-2" style="background: #f1f6f5; color: #5a6e6c; border-color: #c2d3d0;">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background: #7ba099;">5</span>
+              <span class="text-xs font-medium">改善ループ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ウェルカムヘッダー(=深いティールグラデーション、明度ダウン) -->
+        <div class="rounded-2xl p-6 mb-5 shadow-md" style="background: linear-gradient(135deg, #0d9488 0%, #134e4a 100%); color: white;">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div class="text-sm mb-1" style="color: #a7d8d1;">お疲れさまです、龍さん ☕️</div>
+              <h1 class="text-2xl font-bold">今日もお客様と素敵なコミュニケーションを ✨</h1>
+              <p class="text-sm mt-2" style="color: #a7d8d1;">今月、お客様 <b class="text-white">487 名</b>に接触できました。先月より <b class="text-yellow-100">+27 名</b> 増えています 🎉</p>
+            </div>
+            <button class="px-4 py-2.5 rounded-full text-sm font-semibold shadow" style="background: white; color: #0f766e;">📥 エクスポート</button>
+          </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="grid grid-cols-4 gap-3 mb-5">
+          <div class="bg-white rounded-2xl p-5 shadow-md card-hover border-2" style="border-color: #c2d3d0;">
+            <div class="text-xs mb-1 font-medium" style="color: #5a6e6c;">顧客接触人数</div>
+            <div class="kpi-num text-3xl font-bold" style="color: #0e3a4d;">487 <span class="text-sm">名</span></div>
+            <div class="text-xs mt-1 font-bold" style="color: #0f766e;">▲ 5.9% (+27名)</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-md card-hover border-2" style="border-color: #c2d3d0;">
+            <div class="text-xs mb-1 font-medium" style="color: #5a6e6c;">プロフィール閲覧</div>
+            <div class="kpi-num text-3xl font-bold" style="color: #0e3a4d;">1,240</div>
+            <div class="text-xs mt-1" style="color: #7ba099;">過去30日</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-md card-hover border-2" style="border-color: #c2d3d0;">
+            <div class="text-xs mb-1 font-medium" style="color: #5a6e6c;">顧客への表示回数</div>
+            <div class="kpi-num text-3xl font-bold" style="color: #0e3a4d;">8,920</div>
+            <div class="text-xs mt-1" style="color: #7ba099;">過去30日</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-md card-hover border-2" style="border-color: #c2d3d0;">
+            <div class="text-xs mb-1 font-medium" style="color: #5a6e6c;">累計接触範囲</div>
+            <div class="kpi-num text-3xl font-bold" style="color: #0e3a4d;">5,430</div>
+            <div class="text-xs mt-1" style="color: #7ba099;">過去30日</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-md border-2" style="border-color: #c2d3d0;">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="font-semibold" style="color: #0e3a4d;">フォロワー推移</div>
+              <div class="text-xs" style="color: #5a6e6c;">過去12週間</div>
+            </div>
+            <span class="text-xs font-bold px-3 py-1 rounded-full" style="color: #0f766e; background: #d1ebe6; border: 1px solid #7ba099;">+27 (+5.9%)</span>
+          </div>
+          <svg viewBox="0 0 600 140" class="w-full h-40">
+            <defs><linearGradient id="gW2" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#0d9488" stop-opacity=".35"/><stop offset="100%" stop-color="#0d9488" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,90 L60,85 L120,80 L180,75 L240,65 L300,58 L360,52 L420,47 L480,40 L540,34 L600,25 L600,140 L0,140Z" fill="url(#gW2)"/>
+            <path class="chart-line" stroke="#0d9488" d="M0,90 L60,85 L120,80 L180,75 L240,65 L300,58 L360,52 L420,47 L480,40 L540,34 L600,25"/>
+          </svg>
+        </div>
+
+        <div class="mt-5 p-4 rounded-2xl border-2 text-sm" style="background: #e6eded; border-color: #7ba099; color: #0e3a4d;">
+          <b style="color: #0f766e;">修正ポイント</b>:<br>
+          ・ 背景=ティールグレー (#e6eded) → 落ち着いた深さ<br>
+          ・ アクセント=ディープティール (#0d9488 → #134e4a) → 元の明るい #14b8a6/#2dd4bf より一段濃く、彩度を抑え<br>
+          ・ 補助金審査用語 <b>「共P-01」を完全削除</b>、見出しは <b>「顧客対応・販売支援プロセス」</b>のみ(=お客様視点で意味が分かる表現に統一)<br>
+          ・ 文言・構造はそのまま:「お疲れさまです、龍さん ☕️」「素敵なコミュニケーションを ✨」「今月 487 名」等
+        </div>
+      </main>
+    </div>
+  </div>
+
+</body>
+</html>

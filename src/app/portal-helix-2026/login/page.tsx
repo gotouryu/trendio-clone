@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-center text-white mb-2">
-            管理者ポータル
+            Caremo 管理者ポータル
           </h1>
           <p className="text-center text-gray-400 text-sm mb-8">
             Helix Plus Admin Console

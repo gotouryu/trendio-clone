@@ -138,8 +138,8 @@ export default function CustomerDetailPage({
         顧客一覧に戻る
       </Link>
 
-      <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-semibold rounded-md mb-3">
-        ★共P-01 該当機能 — 顧客行動履歴・CRM★
+      <div className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
+        顧客対応・販売支援プロセス / 顧客カルテ
       </div>
 
       {/* Customer Header */}
