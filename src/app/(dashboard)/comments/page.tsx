@@ -53,7 +53,7 @@ type Tab = "list" | "logs";
 
 export default function CommentsPage() {
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [filter, setFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [query, setQuery] = useState("");
@@ -493,7 +493,9 @@ export default function CommentsPage() {
                         {c.category && <CategoryBadge category={c.category} />}
                       </div>
                       <p className="text-sm text-gray-800 dark:text-gray-200 mb-3">
-                        {c.text}
+                        {/* Phase 4 修正:demo 用 mockComments のみ textEn を表示
+                            (=実 Instagram コメントは元言語のまま) */}
+                        {locale === "en" && c.textEn ? c.textEn : c.text}
                       </p>
 
                       {replyingTo === c.id ? (

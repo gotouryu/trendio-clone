@@ -68,6 +68,12 @@ export type CommentItem = {
   author: string;
   authorAvatar: string;
   text: string;
+  /**
+   * 英語版テキスト(=screencast 撮影 + Meta App Review 用)。
+   * 設定なら locale==='en' 時にこちらを表示。実コメント(=Instagram から取得)は
+   * 元言語のまま表示するため、textEn は mockData のデモ用のみ設定される。
+   */
+  textEn?: string;
   timestamp: string;
   status: "unread" | "replied" | "archived";
   sentiment: "positive" | "neutral" | "negative";
