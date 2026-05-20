@@ -62,11 +62,9 @@ export default function SettingsPage() {
     }
   }, [profile.companyName, setProfile]);
 
-  useEffect(() => {
-    if (profile.language !== locale) {
-      setLocale(profile.language);
-    }
-  }, [profile.language, locale, setLocale]);
+  // Phase 4 修正:profile.language → locale の自動上書きは廃止
+  // (=旧:profile.language="ja" デフォルトが locale="en"(navigator.language 推定値)
+  // を毎回 ja に上書きしていたバグ。Language は changeLanguage() で明示変更時のみ反映)
 
   useEffect(() => {
     fetch("/api/auto-reply/settings")
@@ -275,7 +273,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <select
-            value={profile.language}
+            value={locale}
             onChange={(e) => changeLanguage(e.target.value as Locale)}
             className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             aria-label={t("settings.language")}
