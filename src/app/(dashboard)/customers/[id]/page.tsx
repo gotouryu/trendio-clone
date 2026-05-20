@@ -20,7 +20,7 @@ import type {
   CustomerAIAnalysis,
   InquiryCategory,
 } from "@/lib/types";
-import { mockCustomers, mockInteractions } from "@/lib/mockData";
+import { mockCustomers, mockInteractions, mockAIAnalyses } from "@/lib/mockData";
 import { useToast } from "@/components/providers/ToasterProvider";
 
 export default function CustomerDetailPage({
@@ -41,6 +41,11 @@ export default function CustomerDetailPage({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // AI分析:本番DB未登録顧客 (cu1 等の mock ID) でも画面に分析結果が見えるように
+    // mockAIAnalyses[id] があれば初期表示する(=実データが入ったら API で上書きされる)
+    if (mockAIAnalyses[id]) {
+      setAiAnalysis(mockAIAnalyses[id]);
+    }
     Promise.all([
       fetch(`/api/customers/${id}`).then((r) => r.json()),
       fetch(`/api/customers/${id}/interactions?limit=200`).then((r) => r.json()),

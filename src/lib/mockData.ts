@@ -10,6 +10,7 @@ import type {
   ContentIdea,
   Customer,
   CustomerInteraction,
+  CustomerAIAnalysis,
   AutoReplySettings,
   AutoReplyLog,
   FaqPattern,
@@ -96,7 +97,7 @@ export const mockComments: CommentItem[] = [
     id: "c1",
     postId: "p1",
     postThumbnail: "/avatars/post-1.svg",
-    author: "yamada_taro",
+    author: "ryu_ryu",
     authorAvatar: "/avatars/user-1.svg",
     text: "とても素敵な投稿ですね!参考になります🥰",
     timestamp: "2026-05-19T10:23:00+09:00",
@@ -289,8 +290,8 @@ export const goalOptions: { value: string; label: string }[] = [
 export const mockCustomers: Customer[] = [
   {
     id: "cu1",
-    instagramHandle: "yamada_taro",
-    displayName: "山田 太郎",
+    instagramHandle: "ryu_ryu",
+    displayName: "龍",
     profileImageUrl: "/avatars/user-1.svg",
     firstContactAt: "2026-03-12T10:00:00+09:00",
     lastContactAt: "2026-05-19T10:23:00+09:00",
@@ -751,6 +752,34 @@ export const mockAutoReplyLogs: AutoReplyLog[] = [
     status: "sent",
   },
 ];
+
+// ============================================================
+// AI 顧客好み分析のデモデータ(=customer 詳細ページの初期表示用、本番DB未登録時)
+// 顧客カルテ詳細ページで API が 404/空 を返した時のフォールバックに使う。
+// 実データが入った時は API レスポンスで上書きされる。
+// ============================================================
+export const mockAIAnalyses: Record<string, CustomerAIAnalysis> = {
+  cu1: {
+    customerId: "cu1",
+    generatedAt: "2026-05-19T10:30:00+09:00",
+    interests:
+      "新商品リリース情報、商品の使い方・お手入れ方法、ブランドの世界観・新色追加。リール投稿に積極的に反応し、特に新色情報への関心が高い。VIPらしく、こだわりや品質に対する目利きが鋭い印象。",
+    cautions:
+      "VIP扱いの最重要顧客。手厚い個別フォローを継続することが必須。返信は24時間以内が望ましい。新商品発表前の事前告知でロイヤリティ向上が期待できる。新色追加情報は最優先で個別に共有すると喜ばれる。",
+    summary:
+      "龍様は4ヶ月で計8件の接点を持つ最重要顧客。ポジティブなコメントが主体で、新商品リリース時の積極的な反応が特徴。リピート購入の意思が強く、VIP対応を継続することで長期的なファン化と口コミによる紹介効果が見込める。",
+  },
+  cu8: {
+    customerId: "cu8",
+    generatedAt: "2026-05-18T20:00:00+09:00",
+    interests:
+      "メイクアップ関連、ビジュアル重視の投稿、季節商品。ストーリーで他者にシェアする傾向あり、紹介効果が期待できる。",
+    cautions:
+      "保存・シェア率が高いインフルエンサータイプの顧客。新商品の先行情報を共有して関係性を深めると良い。コメントは丁寧かつ迅速に返信。",
+    summary:
+      "佐々木様は1ヶ月強で7件の接点を持つ高活性 VIP 顧客。ストーリーで自社投稿を紹介してくれるなど自然な広告効果がある。先行情報の共有・限定特典の提供で関係性を深めると、より大きな波及効果が見込める。",
+  },
+};
 
 // ============================================================
 // (申請外)Trend 機能は削除済み。互換性のため空配列だけ残す

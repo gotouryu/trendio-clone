@@ -49,7 +49,7 @@ console.log("");
 console.log("=================================================");
 console.log("管理者ログイン情報(=この画面でしか表示されません)");
 console.log("=================================================");
-console.log("URL:      https://trendio-clone.vercel.app/portal-helix-2026/login");
+console.log("URL:      https://karteia.vercel.app/portal-helix-2026/login");
 console.log("Email:   ", email);
 console.log("Password:", password);
 console.log("=================================================");
