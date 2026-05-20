@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import type { Customer, CustomerStatus, CustomerTag } from "@/lib/types";
 import { mockCustomers } from "@/lib/mockData";
-import CaremoProcessBar, {
-  CaremoWelcomeHeader,
-} from "@/components/CaremoProcessBar";
+import KarteiaProcessBar, {
+  KarteiaWelcomeHeader,
+} from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
 
 const statusOptions: { value: CustomerStatus | "all"; label: string; cls: string }[] = [
@@ -83,8 +83,8 @@ export default function CustomersPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      <CaremoProcessBar current="records" />
-      <CaremoWelcomeHeader
+      <KarteiaProcessBar current="records" />
+      <KarteiaWelcomeHeader
         greeting={`お疲れさまです、${displayName}さん ☕️`}
         title="お客様一人ひとりとの関わりを大切に 💚"
         subtitle={

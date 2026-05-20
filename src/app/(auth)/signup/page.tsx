@@ -23,7 +23,7 @@ export default function SignupDisabledPage() {
             招待制サービス
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-            CustomerCare AI は招待制のサービスです。
+            Karteia は招待制のサービスです。
             <br />
             お客様アカウントは管理者から発行されます。
           </p>

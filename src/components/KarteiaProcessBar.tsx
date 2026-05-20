@@ -1,5 +1,5 @@
 /**
- * Caremo の顧客対応・販売支援プロセスバー(=5ステップ、現在地ハイライト)
+ * Karteia の顧客対応・販売支援プロセスバー(=5ステップ、現在地ハイライト)
  * 補助金審査用ラベル「共P-01」はお客様画面から削除済み。
  * 現在地は ProcessBarStep の名前で指定:
  *   - "understand"   → 顧客理解(dashboard)
@@ -27,7 +27,7 @@ const STEPS: { key: ProcessBarStep; num: number; label: string }[] = [
   { key: "loop", num: 5, label: "改善ループ" },
 ];
 
-export default function CaremoProcessBar({ current }: { current: ProcessBarStep }) {
+export default function KarteiaProcessBar({ current }: { current: ProcessBarStep }) {
   return (
     <div
       className="mb-5 bg-white rounded-2xl border-2 p-3 shadow-sm"
@@ -90,10 +90,10 @@ export default function CaremoProcessBar({ current }: { current: ProcessBarStep 
 }
 
 /**
- * Caremoのウェルカムヘッダー(=「お疲れさまです、龍さん」スタイル)
+ * Karteiaのウェルカムヘッダー(=「お疲れさまです、龍さん」スタイル)
  * 各画面の上部で再利用。companyName は省略可。
  */
-export function CaremoWelcomeHeader({
+export function KarteiaWelcomeHeader({
   companyName,
   greeting,
   title,

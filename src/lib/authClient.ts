@@ -2,7 +2,7 @@
 
 import { createSupabaseBrowser, isSupabaseReady } from "./supabase/client";
 
-const SESSION_KEY = "trendio-clone-session";
+const SESSION_KEY = "karteia-session";
 
 export type Role = "customer" | "admin";
 

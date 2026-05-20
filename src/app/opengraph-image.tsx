@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Trendio Clone - SNS運用効率化プラットフォーム";
+export const alt = "Karteia - 顧客対応・販売支援 AI プラットフォーム";
 
 export default function OG() {
   return new ImageResponse(
@@ -44,27 +44,28 @@ export default function OG() {
               letterSpacing: "-0.02em",
             }}
           >
-            Trendio Clone
+            Karteia
           </div>
           <div
             style={{
-              fontSize: 36,
-              color: "#047857",
+              fontSize: 32,
+              color: "#0f766e",
               marginTop: 20,
               fontWeight: 500,
+              maxWidth: 700,
             }}
           >
-            SNS運用効率化プラットフォーム
+            中小企業のための 顧客対応・販売支援 AI プラットフォーム
           </div>
           <div
             style={{
               fontSize: 24,
               color: "#6b7280",
               marginTop: 30,
-              maxWidth: 600,
+              maxWidth: 700,
             }}
           >
-            Instagram・TikTok 分析 / AIコンテンツ生成 / トレンド発見
+            AI自動応答 / 顧客カルテ / 顧客接点分析
           </div>
         </div>
       </div>

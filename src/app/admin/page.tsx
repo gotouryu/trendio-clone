@@ -114,7 +114,7 @@ export default function AdminPage() {
 
   function copyAll(creds: { email: string; password: string }) {
     navigator.clipboard.writeText(
-      `Trendio Clone 管理画面ログイン情報\nURL: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nEmail: ${creds.email}\nPassword: ${creds.password}`,
+      `Karteia 管理画面ログイン情報\nURL: ${typeof window !== "undefined" ? window.location.origin : ""}/login\nEmail: ${creds.email}\nPassword: ${creds.password}`,
     );
     toast("クリップボードにコピーしました", "success");
   }

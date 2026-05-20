@@ -1,4 +1,4 @@
--- CustomerCare AI — Supabase schema
+-- Karteia — Supabase schema
 -- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/<id>/sql/new)
 -- All tables use Row Level Security (RLS) so each user only sees their own rows.
 

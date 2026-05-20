@@ -10,7 +10,7 @@ export default function TermsPage() {
         <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
           <h2 className="font-semibold text-gray-900">第1条(適用)</h2>
           <p>
-            本規約は、Trendio Clone(以下「本サービス」)の利用条件を定めるものです。ユーザーは本規約に同意の上、本サービスを利用するものとします。
+            本規約は、Karteia(以下「本サービス」)の利用条件を定めるものです。ユーザーは本規約に同意の上、本サービスを利用するものとします。
           </p>
 
           <h2 className="font-semibold text-gray-900">第2条(アカウント)</h2>
@@ -34,7 +34,7 @@ export default function TermsPage() {
           </p>
 
           <p className="text-xs text-gray-500 pt-6 border-t border-gray-100">
-            ※ 本ページは Trendio クローンのデモ用ひな型です。本番運用時は法務確認の上で正式な利用規約に置き換えてください。
+            ※ 本ページは Karteiaのデモ用ひな型です。本番運用時は法務確認の上で正式な利用規約に置き換えてください。
           </p>
         </div>
 

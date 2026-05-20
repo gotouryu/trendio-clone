@@ -1,4 +1,4 @@
-// Trendio Clone — Minimal Service Worker
+// Karteia — Minimal Service Worker
 const CACHE = "trendio-v1";
 const APP_SHELL = ["/", "/login", "/dashboard"];
 

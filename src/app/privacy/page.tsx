@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           </p>
 
           <p className="text-xs text-gray-500 pt-6 border-t border-gray-100">
-            ※ 本ページは Trendio クローンのデモ用ひな型です。本番運用時は法務確認の上で正式なポリシーに置き換えてください。
+            ※ 本ページは Karteiaのデモ用ひな型です。本番運用時は法務確認の上で正式なポリシーに置き換えてください。
           </p>
         </div>
 

@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Caremo ブランドカラーパレット(=W2 トーンダウン版、深いティール基調)
+ * Karteia ブランドカラーパレット(=W2 トーンダウン版、深いティール基調)
  * - 主役 brand=teal-600 (#0d9488), brand-dark=teal-700 (#0f766e)
  * - 背景=ティールグレー (#e6eded) で深みを出しつつ目に優しい
  * - サイドバー=深いネイビーティール (#0e3a4d)

@@ -62,7 +62,7 @@ export default function LoginPage() {
             className="text-3xl font-bold text-center"
             style={{ color: "var(--foreground)" }}
           >
-            Caremo
+            Karteia
           </h1>
           <p
             className="text-center text-sm mt-2 mb-6"

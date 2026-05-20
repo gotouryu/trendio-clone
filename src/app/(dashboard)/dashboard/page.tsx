@@ -32,9 +32,9 @@ import {
 } from "@/lib/mockData";
 import { useToast } from "@/components/providers/ToasterProvider";
 import { useLocalStorage } from "@/lib/useLocalStorage";
-import CaremoProcessBar, {
-  CaremoWelcomeHeader,
-} from "@/components/CaremoProcessBar";
+import KarteiaProcessBar, {
+  KarteiaWelcomeHeader,
+} from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
 import {
   buildDashboardCSV,
@@ -179,7 +179,7 @@ export default function DashboardPage() {
   function exportPDF() {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("CustomerCare AI Insight Report", 14, 18);
+    doc.text("Karteia Insight Report", 14, 18);
     doc.setFontSize(10);
     doc.setTextColor(120);
     doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`, 14, 26);
@@ -426,8 +426,8 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      <CaremoProcessBar current="understand" />
-      <CaremoWelcomeHeader
+      <KarteiaProcessBar current="understand" />
+      <KarteiaWelcomeHeader
         greeting={`お疲れさまです、${displayName}さん ☕️`}
         title="顧客との接点を、データで支えます ✨"
         subtitle={

@@ -19,7 +19,7 @@ type Ctx = {
 
 const ThemeCtx = createContext<Ctx | null>(null);
 
-const KEY = "trendio-clone-theme";
+const KEY = "karteia-theme";
 
 function readInitial(): Theme {
   if (typeof window === "undefined") return "light";

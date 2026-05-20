@@ -18,9 +18,9 @@ import {
 import { mockComments } from "@/lib/mockData";
 import type { CommentItem, AutoReplyLog, AutoReplySettings } from "@/lib/types";
 import { useToast } from "@/components/providers/ToasterProvider";
-import CaremoProcessBar, {
-  CaremoWelcomeHeader,
-} from "@/components/CaremoProcessBar";
+import KarteiaProcessBar, {
+  KarteiaWelcomeHeader,
+} from "@/components/KarteiaProcessBar";
 import { getSession } from "@/lib/authClient";
 
 const filterOptions = [
@@ -242,11 +242,11 @@ export default function CommentsPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto">
-      <CaremoProcessBar current="unattended" />
+      <KarteiaProcessBar current="unattended" />
       {(() => {
         const unread = comments.filter((c) => c.status === "unread").length;
         return (
-          <CaremoWelcomeHeader
+          <KarteiaWelcomeHeader
             greeting={`お疲れさまです、${displayName}さん ☕️`}
             title="今日もお客様の声に応えていきましょう ✨"
             subtitle={

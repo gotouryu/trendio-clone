@@ -21,7 +21,7 @@ export default function Sidebar() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  // Caremo の主要4機能(=共P-01 該当機能、お客様向けラベルに統一)
+  // Karteia の主要4機能(=共P-01 該当機能、お客様向けラベルに統一)
   const navItems = [
     { href: "/dashboard", label: "顧客理解", Icon: LayoutDashboard },
     { href: "/comments", label: "無人受付", Icon: MessageCircle },
@@ -56,7 +56,7 @@ export default function Sidebar() {
         </div>
         <div className="min-w-0">
           <div className="font-bold text-white text-base tracking-wide">
-            Caremo
+            Karteia
           </div>
           {companyName && (
             <div

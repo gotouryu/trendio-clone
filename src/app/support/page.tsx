@@ -27,7 +27,7 @@ export default function SupportPage() {
           </div>
 
           <p className="text-xs text-gray-500 pt-6 border-t border-gray-100">
-            ※ このページは Trendio クローンのひな型です。
+            ※ このページは Karteiaのひな型です。
           </p>
         </div>
 

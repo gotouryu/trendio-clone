@@ -35,7 +35,7 @@ export function buildDashboardCSV(
   followerTrend: FollowerTrendPoint[],
 ): string {
   const lines: string[] = [];
-  lines.push("# Trendio Clone — ダッシュボード輸出");
+  lines.push("# Karteia — ダッシュボード輸出");
   lines.push(`# 生成日時: ${new Date().toISOString()}`);
   lines.push("");
   lines.push("## KPI");
