@@ -46,16 +46,19 @@ export default function CustomerDetailPage({
       fetch(`/api/customers/${id}/interactions?limit=200`).then((r) => r.json()),
     ])
       .then(([cRes, iRes]) => {
-        if (cRes.customer) setCustomer(cRes.customer as Customer);
-        else {
+        if (cRes.customer) {
+          setCustomer(cRes.customer as Customer);
+        } else {
           // フォールバック
           const fb = mockCustomers.find((c) => c.id === id);
           if (fb) setCustomer(fb);
         }
-        if (iRes.interactions)
+        // interactions が空配列の場合もデモ表示用に mockInteractions を使う
+        if (iRes.interactions && iRes.interactions.length > 0) {
           setInteractions(iRes.interactions as CustomerInteraction[]);
-        else
+        } else {
           setInteractions(mockInteractions.filter((i) => i.customerId === id));
+        }
         if (iRes.byCategoryCount) setByCategory(iRes.byCategoryCount);
       })
       .catch(() => {

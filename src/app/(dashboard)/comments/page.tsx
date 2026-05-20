@@ -15,7 +15,11 @@ import {
   ShieldAlert,
   Clock,
 } from "lucide-react";
-import { mockComments } from "@/lib/mockData";
+import {
+  mockComments,
+  mockAutoReplyLogs,
+  mockAutoReplySettings,
+} from "@/lib/mockData";
 import type { CommentItem, AutoReplyLog, AutoReplySettings } from "@/lib/types";
 import { useToast } from "@/components/providers/ToasterProvider";
 import KarteiaProcessBar, {
@@ -76,20 +80,33 @@ export default function CommentsPage() {
         if (j.settings) {
           setSettings(j.settings as AutoReplySettings);
           setAutoReplyEnabled(j.settings.enabled);
+        } else {
+          // 本番DB未登録時のデモ表示用フォールバック(=実データ発生後は使われない)
+          setSettings(mockAutoReplySettings);
         }
       })
       .catch(() => {
-        /* 未認証時はスキップ */
+        setSettings(mockAutoReplySettings);
       });
 
     fetch("/api/auto-reply/logs?limit=50")
       .then((r) => r.json())
       .then((j) => {
-        if (j.logs) setAutoReplyLogs(j.logs as AutoReplyLog[]);
-        if (typeof j.monthlyCount === "number") setMonthlyCount(j.monthlyCount);
+        if (j.logs && j.logs.length > 0) {
+          setAutoReplyLogs(j.logs as AutoReplyLog[]);
+        } else {
+          // 本番DB未登録時のデモ表示用フォールバック(=実データ発生後は実ログで上書き)
+          setAutoReplyLogs(mockAutoReplyLogs);
+        }
+        if (typeof j.monthlyCount === "number" && j.monthlyCount > 0) {
+          setMonthlyCount(j.monthlyCount);
+        } else {
+          setMonthlyCount(mockAutoReplyLogs.length);
+        }
       })
       .catch(() => {
-        /* 未認証時はスキップ */
+        setAutoReplyLogs(mockAutoReplyLogs);
+        setMonthlyCount(mockAutoReplyLogs.length);
       });
   }, []);
 

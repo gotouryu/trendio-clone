@@ -25,6 +25,7 @@ import { useTheme, type Theme } from "@/components/providers/ThemeProvider";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import type { AutoReplySettings, FaqPattern } from "@/lib/types";
+import { mockAutoReplySettings } from "@/lib/mockData";
 
 type Profile = {
   companyName: string;
@@ -67,10 +68,15 @@ export default function SettingsPage() {
     fetch("/api/auto-reply/settings")
       .then((r) => r.json())
       .then((j) => {
-        if (j.settings) setArSettings(j.settings as AutoReplySettings);
+        if (j.settings) {
+          setArSettings(j.settings as AutoReplySettings);
+        } else {
+          // 本番DB未登録時のデモ表示用フォールバック
+          setArSettings(mockAutoReplySettings);
+        }
       })
       .catch(() => {
-        /* 未認証時はスキップ */
+        setArSettings(mockAutoReplySettings);
       });
   }, []);
 

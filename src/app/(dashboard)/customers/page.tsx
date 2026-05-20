@@ -50,7 +50,10 @@ export default function CustomersPage() {
     fetch("/api/customers?limit=200")
       .then((r) => r.json())
       .then((j) => {
-        if (j.customers) setCustomers(j.customers as Customer[]);
+        // 本番DBに登録済の顧客があれば実データ、無ければ mockCustomers のまま
+        if (j.customers && j.customers.length > 0) {
+          setCustomers(j.customers as Customer[]);
+        }
       })
       .catch(() => {
         // フォールバック:mockCustomers のまま
