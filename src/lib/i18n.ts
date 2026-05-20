@@ -261,6 +261,21 @@ const dict: Record<Locale, Record<string, string>> = {
     "settings.ng.empty": "NGワードはありません",
     "settings.ng.add": "追加",
     "settings.sync.started": "同期を開始しました",
+    "settings.sns.tips.ig":
+      "InstagramはFacebookビジネスアカウントと連携している必要があります",
+    "settings.sns.tips.tt":
+      "TikTokはビジネスまたはクリエイターアカウントが必要です",
+    "settings.sns.tips.sync":
+      "データの同期は接続後最大24時間かかる場合があります",
+    "settings.autoReply.desc":
+      "機能① AI顧客応答機能の自動応答モードで使用するルール(=共P-01 無人受付の判定条件)",
+    "settings.businessHours.modeDesc":
+      "営業時間内は手動承認、時間外は自動応答",
+    "settings.faq.count": "{n} 件",
+    "settings.faq.howto":
+      "コメントにキーワードが含まれていたら定型文で自動応答します",
+    "settings.ng.howto":
+      "コメントにこれらのキーワードが含まれていたら自動応答せず、人が確認します",
 
     // 共通
     "common.save": "保存",
@@ -552,6 +567,21 @@ const dict: Record<Locale, Record<string, string>> = {
     "settings.ng.empty": "No blocked keywords",
     "settings.ng.add": "Add",
     "settings.sync.started": "Sync started",
+    "settings.sns.tips.ig":
+      "Instagram must be linked to a Facebook Business Account",
+    "settings.sns.tips.tt":
+      "TikTok requires a Business or Creator account",
+    "settings.sns.tips.sync":
+      "Sync may take up to 24 hours after connecting",
+    "settings.autoReply.desc":
+      "Rules used by AI auto-reply mode (Common P-01 Unattended Reception decision logic)",
+    "settings.businessHours.modeDesc":
+      "Manual approval inside business hours; auto-reply outside",
+    "settings.faq.count": "{n}",
+    "settings.faq.howto":
+      "When a comment contains the keyword, reply with the template automatically",
+    "settings.ng.howto":
+      "Comments containing these keywords skip auto-reply and require human review",
 
     // Common
     "common.save": "Save",

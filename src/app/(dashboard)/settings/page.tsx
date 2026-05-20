@@ -357,12 +357,12 @@ export default function SettingsPage() {
                 </span>
                 {instagramConnected && (
                   <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                    接続済み
+                    {t("common.connected")}
                   </span>
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Meta 公式 Graph API 経由で Instagram ビジネスアカウントを連携
+                {t("settings.sns.instagram.desc")}
               </div>
             </div>
             {snsLoading ? (
@@ -390,7 +390,7 @@ export default function SettingsPage() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 dark:hover:bg-gray-600"
               >
                 <Link2 className="w-3.5 h-3.5" />
-                接続
+                {t("common.connect")}
               </a>
             )}
           </div>
@@ -410,12 +410,12 @@ export default function SettingsPage() {
                 </span>
                 {tiktokConnected && (
                   <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                    接続済み
+                    {t("common.connected")}
                   </span>
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                TikTok API 再申請中、採択後の追加対応予定
+                {t("settings.sns.tiktok.desc")}
               </div>
             </div>
             {snsLoading ? (
@@ -425,7 +425,7 @@ export default function SettingsPage() {
                 onClick={() => disconnectSns("tiktok")}
                 className="px-3 py-1.5 text-sm text-red-500 hover:text-red-600"
               >
-                接続解除
+                {t("common.disconnect")}
               </button>
             ) : (
               <a
@@ -433,7 +433,7 @@ export default function SettingsPage() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-800 dark:hover:bg-gray-600"
               >
                 <Link2 className="w-3.5 h-3.5" />
-                接続
+                {t("common.connect")}
               </a>
             )}
           </div>
@@ -449,26 +449,20 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                接続のヒント
+                {t("settings.sns.tips")}
               </h3>
               <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  <span>
-                    InstagramはFacebookビジネスアカウントと連携している必要があります
-                  </span>
+                  <span>{t("settings.sns.tips.ig")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  <span>
-                    TikTokはビジネスまたはクリエイターアカウントが必要です
-                  </span>
+                  <span>{t("settings.sns.tips.tt")}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  <span>
-                    データの同期は接続後最大24時間かかる場合があります
-                  </span>
+                  <span>{t("settings.sns.tips.sync")}</span>
                 </li>
               </ul>
             </div>
@@ -479,11 +473,11 @@ export default function SettingsPage() {
       {/* Auto-Reply Rules */}
       <section className="mb-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
-          自動応答ルール設定
+          {t("settings.autoReplyRules")}
           {savingAr && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
         </h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          機能① AI顧客応答機能の自動応答モードで使用するルール(=共P-01 無人受付の判定条件)
+          {t("settings.autoReply.desc")}
         </p>
 
         {arSettings && (
@@ -493,7 +487,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-gray-500" />
                 <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  営業時間
+                  {t("settings.businessHours.title")}
                 </h3>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
@@ -513,7 +507,7 @@ export default function SettingsPage() {
                     className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                   />
                   <span className="text-gray-700 dark:text-gray-200">
-                    営業時間内は手動承認、時間外は自動応答
+                    {t("settings.businessHours.modeDesc")}
                   </span>
                 </label>
                 <div className="flex items-center gap-2">
@@ -530,7 +524,7 @@ export default function SettingsPage() {
                       })
                     }
                     className="px-2 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-                    aria-label="営業開始時刻"
+                    aria-label={t("settings.businessHours.startAria")}
                   />
                   <span className="text-gray-500">–</span>
                   <input
@@ -546,7 +540,7 @@ export default function SettingsPage() {
                       })
                     }
                     className="px-2 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg text-sm text-gray-900 dark:text-gray-100"
-                    aria-label="営業終了時刻"
+                    aria-label={t("settings.businessHours.endAria")}
                   />
                   <span className="text-xs text-gray-500">
                     ({arSettings.businessHours.timezone})
@@ -561,9 +555,11 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <ListChecks className="w-4 h-4 text-gray-500" />
                   <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                    FAQパターン
+                    {t("settings.faq.title")}
                     <span className="text-xs text-gray-400 ml-2">
-                      {arSettings.faqPatterns.length} 件
+                      {t("settings.faq.count", {
+                        n: arSettings.faqPatterns.length,
+                      })}
                     </span>
                   </h3>
                 </div>
@@ -585,11 +581,11 @@ export default function SettingsPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  追加
+                  {t("settings.faq.add")}
                 </button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                コメントにキーワードが含まれていたら定型文で自動応答します
+                {t("settings.faq.howto")}
               </p>
               <div className="space-y-3">
                 {arSettings.faqPatterns.map((pattern, idx) => (
