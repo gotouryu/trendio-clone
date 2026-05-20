@@ -36,7 +36,7 @@ type Profile = {
 export default function SettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const searchParams = useSearchParams();
 
   const [profile, setProfile] = useLocalStorage<Profile>(
@@ -234,19 +234,19 @@ export default function SettingsPage() {
                 active={theme === "light"}
                 onClick={() => changeTheme("light")}
                 icon={<Sun className="w-4 h-4" />}
-                label="ライト"
+                label={t("settings.theme.light")}
               />
               <ThemePill
                 active={theme === "dark"}
                 onClick={() => changeTheme("dark")}
                 icon={<Moon className="w-4 h-4" />}
-                label="ダーク"
+                label={t("settings.theme.dark")}
               />
               <ThemePill
                 active={theme === "system"}
                 onClick={() => changeTheme("system")}
                 icon={<Laptop className="w-4 h-4" />}
-                label="システム"
+                label={t("settings.theme.system")}
               />
             </div>
           </div>
@@ -273,8 +273,8 @@ export default function SettingsPage() {
             className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             aria-label="言語を選択"
           >
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
+            <option value="ja">{t("settings.language.ja")}</option>
+            <option value="en">{t("settings.language.en")}</option>
           </select>
         </div>
       </section>
@@ -295,7 +295,7 @@ export default function SettingsPage() {
                   <input
                     value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
-                    placeholder="株式会社○○"
+                    placeholder={t("settings.company.placeholder")}
                     className="flex-1 min-w-[150px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <button
@@ -317,7 +317,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   {profile.companyName || (
-                    <span className="text-sm text-gray-400">未設定</span>
+                    <span className="text-sm text-gray-400">{t("settings.company.unset")}</span>
                   )}
                 </div>
               )}
@@ -370,7 +370,7 @@ export default function SettingsPage() {
             ) : instagramConnected ? (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => toast("同期を開始しました", "info")}
+                  onClick={() => toast(t("settings.sync.started"), "info")}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -646,7 +646,7 @@ export default function SettingsPage() {
         {!arSettings && (
           <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-8 text-center">
             <Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto mb-2" />
-            <p className="text-sm text-gray-500">設定を読み込み中...</p>
+            <p className="text-sm text-gray-500">{t("settings.loading")}</p>
           </div>
         )}
       </section>
@@ -690,6 +690,7 @@ function FaqEditor({
   onChange: (next: FaqPattern) => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
   const [local, setLocal] = useState(pattern);
   // 親値で local を上書きするのは「別 FAQ に切り替わった時(=id 変更)」だけにする。
   // pattern オブジェクト参照で同期すると、入力中の未確定テキストが上書きで消える。
@@ -712,19 +713,19 @@ function FaqEditor({
             onChange={(e) => toggleEnabled(e.target.checked)}
             className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
           />
-          <span className="text-gray-600 dark:text-gray-300">有効</span>
+          <span className="text-gray-600 dark:text-gray-300">{t("settings.faq.enabled")}</span>
         </label>
         <input
           value={local.keyword}
           onChange={(e) => setLocal({ ...local, keyword: e.target.value })}
           onBlur={() => onChange(local)}
-          placeholder="キーワード(例:営業時間)"
+          placeholder={t("settings.faq.keyword")}
           className="flex-1 min-w-[150px] px-2 py-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-xs"
         />
         <button
           onClick={onDelete}
           className="text-red-500 hover:text-red-600 p-1"
-          aria-label="削除"
+          aria-label={t("settings.faq.deleteAria")}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -734,7 +735,7 @@ function FaqEditor({
         onChange={(e) => setLocal({ ...local, reply: e.target.value })}
         onBlur={() => onChange(local)}
         rows={2}
-        placeholder="定型応答文"
+        placeholder={t("settings.faq.reply")}
         className="w-full mt-2 px-2 py-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-xs"
       />
     </div>
@@ -748,6 +749,7 @@ function DefaultTemplateEditor({
   value: string;
   onSave: (v: string) => void;
 }) {
+  const { t } = useI18n();
   // ローカルバッファ:onBlur で初めて親 state を更新する(=入力中に他操作が走って未確定文字列が保存されるのを防ぐ)
   const [local, setLocal] = useState(value);
   useEffect(() => setLocal(value), [value]);
@@ -757,11 +759,11 @@ function DefaultTemplateEditor({
       <div className="flex items-center gap-2 mb-2">
         <Save className="w-4 h-4 text-gray-500" />
         <h3 className="font-medium text-gray-900 dark:text-gray-100">
-          デフォルト応答テンプレ
+          {t("settings.default.title")}
         </h3>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        FAQに該当しないコメントが営業時間外に来た場合の応答(空欄なら応答しない)
+        {t("settings.default.help")}
       </p>
       <textarea
         value={local}
@@ -770,7 +772,7 @@ function DefaultTemplateEditor({
           if (local !== value) onSave(local);
         }}
         rows={3}
-        placeholder="例:お問い合わせありがとうございます。担当者より順次お返事いたします。"
+        placeholder={t("settings.default.placeholder")}
         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
       />
     </div>
@@ -784,6 +786,7 @@ function NgKeywordEditor({
   keywords: string[];
   onChange: (k: string[]) => void;
 }) {
+  const { t } = useI18n();
   const [input, setInput] = useState("");
   function add() {
     const v = input.trim();
@@ -804,14 +807,14 @@ function NgKeywordEditor({
               add();
             }
           }}
-          placeholder="NGワードを入力 (Enterで追加)"
+          placeholder={t("settings.ng.placeholder")}
           className="flex-1 px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg text-sm"
         />
         <button
           onClick={add}
           className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium"
         >
-          追加
+          {t("settings.ng.add")}
         </button>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -824,14 +827,14 @@ function NgKeywordEditor({
             <button
               onClick={() => onChange(keywords.filter((_, i) => i !== idx))}
               className="hover:text-red-900 dark:hover:text-red-100"
-              aria-label={`${k}を削除`}
+              aria-label={`${t("settings.faq.deleteAria")} ${k}`}
             >
               ×
             </button>
           </span>
         ))}
         {keywords.length === 0 && (
-          <span className="text-xs text-gray-400">NGワードはありません</span>
+          <span className="text-xs text-gray-400">{t("settings.ng.empty")}</span>
         )}
       </div>
     </div>

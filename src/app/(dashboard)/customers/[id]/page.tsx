@@ -159,7 +159,7 @@ export default function CustomerDetailPage({
         className="text-sm text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 mb-4"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        顧客一覧に戻る
+        {t("customerDetail.back")}
       </Link>
 
       <div className="text-xs font-medium mb-3" style={{ color: "var(--muted)" }}>
@@ -273,12 +273,16 @@ export default function CustomerDetailPage({
             <AnalysisField title={t("customerDetail.analysis.cautions")} content={aiAnalysis.cautions} />
             <AnalysisField title={t("customerDetail.analysis.summary")} content={aiAnalysis.summary} />
             <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-              分析実行:{new Date(aiAnalysis.generatedAt).toLocaleString("ja-JP")}
+              {t("customerDetail.analysis.runAt", {
+                at: new Date(aiAnalysis.generatedAt).toLocaleString(
+                  locale === "en" ? "en-US" : "ja-JP",
+                ),
+              })}
             </p>
           </div>
         ) : (
           <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-            まだ分析を実行していません。「AI分析を実行」ボタンを押してください。
+            {t("customerDetail.analysis.notRun")}
           </p>
         )}
       </div>
@@ -288,14 +292,14 @@ export default function CustomerDetailPage({
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 mb-5">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
             <TagIcon className="w-4 h-4" />
-            問い合わせカテゴリ別 集計
+            {t("customerDetail.category.title")}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <CategoryTile label="商品問い合わせ" count={byCategory.product_inquiry} cls="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" />
-            <CategoryTile label="営業時間" count={byCategory.business_hours} cls="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" />
-            <CategoryTile label="クレーム" count={byCategory.complaint} cls="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300" />
-            <CategoryTile label="ポジティブ" count={byCategory.positive} cls="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" />
-            <CategoryTile label="その他" count={byCategory.other} cls="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" />
+            <CategoryTile label={t("comments.category.product_inquiry")} count={byCategory.product_inquiry} cls="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" />
+            <CategoryTile label={t("comments.category.business_hours")} count={byCategory.business_hours} cls="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" />
+            <CategoryTile label={t("comments.category.complaint")} count={byCategory.complaint} cls="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300" />
+            <CategoryTile label={t("comments.category.positive")} count={byCategory.positive} cls="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" />
+            <CategoryTile label={t("comments.category.other")} count={byCategory.other} cls="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300" />
           </div>
         </div>
       )}
@@ -304,12 +308,14 @@ export default function CustomerDetailPage({
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
         <h2 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
           <MessageCircle className="w-4 h-4" />
-          接点履歴(時系列)
-          <span className="text-xs text-gray-400 ml-1">{interactions.length} 件</span>
+          {t("customerDetail.interactions.title")}
+          <span className="text-xs text-gray-400 ml-1">
+            {t("customerDetail.interactions.count", { n: interactions.length })}
+          </span>
         </h2>
         {interactions.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">
-            接点履歴がありません
+            {t("customerDetail.interactions.empty")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -324,17 +330,20 @@ export default function CustomerDetailPage({
 }
 
 function StatusPill({ status }: { status: Customer["status"] }) {
-  const map = {
-    new: { label: "新規", cls: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
-    active: { label: "対応中", cls: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
-    vip: { label: "VIP", cls: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
-    follow_up: { label: "要フォロー", cls: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300" },
-    closed: { label: "対応済", cls: "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" },
+  const { t } = useI18n();
+  const clsMap = {
+    new: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    active:
+      "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    vip: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    follow_up:
+      "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+    closed: "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
   };
-  const m = map[status];
+  const cls = clsMap[status];
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.cls}`}>
-      {m.label}
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
+      {t(`customers.status.${status}`)}
     </span>
   );
 }

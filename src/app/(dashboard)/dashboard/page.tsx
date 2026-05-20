@@ -338,15 +338,15 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-orange-600" />
-                  男性
+                  {t("dashboard.gender.male")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-orange-400" />
-                  女性
+                  {t("dashboard.gender.female")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-orange-200" />
-                  その他
+                  {t("dashboard.gender.other")}
                 </span>
               </div>
             }
@@ -370,15 +370,15 @@ export default function DashboardPage() {
             <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs text-gray-700 dark:text-gray-300">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-orange-400" />
-                女性 <strong>{mockGenderRatio.female}.0%</strong>
+                {t("dashboard.gender.female")} <strong>{mockGenderRatio.female}.0%</strong>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-orange-600" />
-                男性 <strong>{mockGenderRatio.male}.0%</strong>
+                {t("dashboard.gender.male")} <strong>{mockGenderRatio.male}.0%</strong>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-orange-200" />
-                その他 <strong>{mockGenderRatio.other}.0%</strong>
+                {t("dashboard.gender.other")} <strong>{mockGenderRatio.other}.0%</strong>
               </span>
             </div>
           </DraggableCard>
@@ -403,7 +403,7 @@ export default function DashboardPage() {
             sub=""
             right={
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                ⌚ 最適時刻:17:00
+                {t("dashboard.postTime.optimal")}
               </div>
             }
           >
@@ -414,10 +414,10 @@ export default function DashboardPage() {
               <Lightbulb className="w-4 h-4 text-emerald-600 mt-0.5" />
               <div>
                 <div className="font-medium text-gray-900 dark:text-gray-100">
-                  推奨対応時間帯
+                  {t("dashboard.postTime.recommendation")}
                 </div>
                 <div className="text-gray-600 dark:text-gray-300 mt-0.5">
-                  17:00 · 08:00 · 03:00 の顧客接点が最も多い
+                  {t("dashboard.postTime.peak")}
                 </div>
               </div>
             </div>
@@ -475,7 +475,7 @@ export default function DashboardPage() {
                 aria-expanded={exportOpen}
               >
                 <Download className="w-4 h-4" />
-                エクスポート
+                {t("dashboard.export")}
                 <ChevronDown className="w-3 h-3" />
               </button>
               {exportOpen && (
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     role="menuitem"
                   >
-                    CSV(Excel互換)
+                    {t("dashboard.export.csv")}
                   </button>
                   <button
                     onClick={exportJSON}
@@ -512,10 +512,10 @@ export default function DashboardPage() {
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              Instagram 顧客接点
+              {t("dashboard.instagram")}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              SNS 経由で発生した顧客接点・属性分析
+              {t("dashboard.instagram.sub")}
             </p>
           </div>
         </div>
@@ -557,10 +557,10 @@ export default function DashboardPage() {
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              TikTok 顧客接点
+              {t("dashboard.tiktok")}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              TikTok API 再申請中、採択後の追加対応予定
+              {t("dashboard.tiktok.sub")}
             </p>
           </div>
         </div>
@@ -575,17 +575,17 @@ export default function DashboardPage() {
             </svg>
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            TikTokアカウントを接続してください
+            {t("dashboard.tiktok.connect.title")}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-            アカウントを接続すると、TikTok経由の顧客接点・エンゲージメント分析を確認できます。
+            {t("dashboard.tiktok.connect.desc")}
           </p>
           <a
             href="/settings"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-600"
           >
             <Link2 className="w-4 h-4" />
-            設定ページで接続する
+            {t("dashboard.tiktok.connect.cta")}
           </a>
         </div>
       </section>
@@ -600,17 +600,17 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                  インサイトホワイトペーパー
+                  {t("dashboard.whitepaper")}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  AIが顧客接点データを分析し、レポートを自動生成
+                  {t("dashboard.whitepaper.sub")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-200">
                 <Save className="w-3.5 h-3.5" />
-                保存済み(0)
+                {t("dashboard.report.saved", { n: 0 })}
               </button>
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded-lg text-xs text-orange-700 dark:text-orange-300">
                 <Instagram className="w-3.5 h-3.5" />
@@ -624,11 +624,11 @@ export default function DashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium"
               >
                 <FileDown className="w-3.5 h-3.5" />
-                PDFで保存
+                {t("dashboard.report.pdfSave")}
               </button>
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-xs font-medium">
                 <SparkleIcon className="w-3.5 h-3.5" />
-                レポートを生成する
+                {t("dashboard.generateReport")}
               </button>
             </div>
           </div>
@@ -637,10 +637,10 @@ export default function DashboardPage() {
               <FileBarChart className="w-6 h-6 text-gray-500 dark:text-gray-400" />
             </div>
             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              顧客接点レポートを生成する
+              {t("dashboard.report.title")}
             </h4>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              InstagramまたはTikTokを選択すると、AIが顧客理解レポートを自動生成します。
+              {t("dashboard.report.desc")}
             </p>
           </div>
         </div>
