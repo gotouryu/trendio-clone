@@ -33,6 +33,9 @@ type Profile = {
   language: Locale;
 };
 
+// TikTok 連携は当面見送る方針(#6)。表示だけ消し、ロジックは残す。再開時は true に。
+const SHOW_TIKTOK = false;
+
 export default function SettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
@@ -401,6 +404,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {SHOW_TIKTOK && (
         <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="tt-icon-bg w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -443,6 +447,7 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
       </section>
 
       {/* Connection Tips */}

@@ -101,6 +101,9 @@ const DEFAULT_ORDER: WidgetKey[] = [
   "postTime",
 ];
 
+// TikTok 連携は当面見送る方針(#6)。表示だけ消し、ロジックは残す。再開時は true に。
+const SHOW_TIKTOK = false;
+
 export default function DashboardPage() {
   const { toast } = useToast();
   const { t } = useI18n();
@@ -668,6 +671,7 @@ export default function DashboardPage() {
       </section>
 
       {/* TikTok Section */}
+      {SHOW_TIKTOK && (
       <section className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="tt-icon-bg w-10 h-10 rounded-xl flex items-center justify-center">
@@ -709,6 +713,7 @@ export default function DashboardPage() {
           </a>
         </div>
       </section>
+      )}
 
       {/* AI Report Modal (=Phase 3 Wave-D Critical C-5) */}
       {reportOpen && (
@@ -790,9 +795,11 @@ export default function DashboardPage() {
                 <Instagram className="w-3.5 h-3.5" />
                 Instagram
               </button>
+              {SHOW_TIKTOK && (
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs text-gray-500 dark:text-gray-400">
                 TikTok
               </button>
+              )}
               <button
                 onClick={exportPDF}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium"
