@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Heart,
+  Sparkles,
 } from "lucide-react";
 import { getSession, logout } from "@/lib/authClient";
 import { useI18n } from "@/lib/i18n";
@@ -23,12 +24,15 @@ export default function Sidebar() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  // Karteia の主要4機能(=共P-01 該当機能、お客様向けラベルに統一)
+  // Karteia の主要機能(=共P-01 該当機能、お客様向けラベルに統一)
   // ラベルは i18n 経由(=Settings の言語切替で英語化、screencast 撮影に必須)
   const navItems = [
     { href: "/dashboard", labelKey: "nav.dashboard", Icon: LayoutDashboard },
     { href: "/comments", labelKey: "nav.comments", Icon: MessageCircle },
     { href: "/customers", labelKey: "nav.customers", Icon: Users },
+    ...(process.env.NEXT_PUBLIC_ENABLE_AI_CONTENT === "true"
+      ? [{ href: "/ai-content", labelKey: "nav.aiContent", Icon: Sparkles }]
+      : []),
     { href: "/settings", labelKey: "nav.settings", Icon: Settings },
   ];
 
