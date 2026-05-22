@@ -219,3 +219,56 @@ export type CustomerScriptTemplate = {
   body: string;
   createdAt: string;
 };
+
+// ============================================================
+// AI台本生成(BuzzInsight 同等)#7
+//   段階①:10入力項目 → 企画案を複数生成
+//   段階②:選択した企画案 → シーン別台本(映像/ナレーション/テロップ/SE/秒数)
+// ============================================================
+
+export type ScriptPlatform = "instagram" | "tiktok" | "all";
+
+// 段階①の入力(=お客様が入力する10項目)
+export type ScriptBrief = {
+  target: string;          // ターゲット(誰に向けた動画か)
+  theme: string;           // 投稿テーマ
+  hasPerformer: boolean;   // 演者あり/なし
+  hasNarration: boolean;   // ナレーションあり/なし
+  mustInclude: string;     // 絶対に入れたい内容
+  durationSec: number;     // 動画の長さ(秒)
+  referenceUrl?: string;   // 参考URL(任意)
+  cta: string;             // CTA(行動喚起)
+  companyName: string;     // 会社名
+  companyUrl?: string;     // 会社URL
+  platform: ScriptPlatform;
+};
+
+// 段階①の出力(=企画案)
+export type PlanIdea = {
+  id: string;
+  title: string;       // 企画タイトル
+  concept: string;     // 企画の狙い・コンセプト
+  hook: string;        // 冒頭フック(掴み)
+  outline: string;     // 構成の概要(数行)
+};
+
+// 段階②の出力:1シーン
+export type ScriptScene = {
+  sceneNo: number;
+  durationSec: number;  // このシーンの秒数
+  visual: string;       // 映像(何を撮るか)
+  narration: string;    // ナレーション/セリフ
+  caption: string;      // テロップ
+  se: string;           // SE(効果音/BGM)
+};
+
+// 段階②の出力:完成台本
+export type GeneratedScript = {
+  id: string;
+  planTitle: string;
+  totalDurationSec: number;
+  scenes: ScriptScene[];
+  hashtags: string[];
+  cta: string;
+  savedAt?: string;
+};

@@ -17,6 +17,9 @@ export const env = {
   supabaseServiceRole: nonEmpty(process.env.SUPABASE_SERVICE_ROLE_KEY),
   anthropicApiKey: nonEmpty(process.env.ANTHROPIC_API_KEY),
   claudeModel: nonEmpty(process.env.CLAUDE_MODEL) ?? "claude-sonnet-4-6",
+  // AI台本生成(#7):採用AI = Gemini 2.5 Flash-Lite
+  geminiApiKey: nonEmpty(process.env.GEMINI_API_KEY),
+  geminiModel: nonEmpty(process.env.GEMINI_MODEL) ?? "gemini-2.5-flash-lite",
   metaAppId: nonEmpty(process.env.META_APP_ID),
   metaAppSecret: nonEmpty(process.env.META_APP_SECRET),
   metaGraphApiVersion:
@@ -36,6 +39,10 @@ export function hasSupabase() {
 
 export function hasAnthropic() {
   return !!env.anthropicApiKey;
+}
+
+export function hasGemini() {
+  return !!env.geminiApiKey;
 }
 
 export function hasMeta() {

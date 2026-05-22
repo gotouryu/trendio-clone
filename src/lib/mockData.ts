@@ -8,6 +8,8 @@ import type {
   HourlyEngagement,
   CommentItem,
   ContentIdea,
+  PlanIdea,
+  GeneratedScript,
   Customer,
   CustomerInteraction,
   CustomerAIAnalysis,
@@ -277,6 +279,75 @@ export const mockContentIdeas: ContentIdea[] = [
     savedAt: "2026-05-12",
   },
 ];
+
+// ============================================================
+// AI台本生成(#7)mock — APIキー未設定でも2段階フローを確認できる
+// ============================================================
+export const mockPlanIdeas: PlanIdea[] = [
+  {
+    id: "p1",
+    title: "開店3秒で伝わる看板メニュー紹介",
+    concept: "冒頭で一番人気を見せ、ターゲットの『これ食べたい』を即喚起する王道型",
+    hook: "この一杯のために行列ができる、と言われたら見たくなりませんか?",
+    outline: "1. 看板メニューのドアップ\n2. こだわり3点をテロップで\n3. 来店案内とCTA",
+  },
+  {
+    id: "p2",
+    title: "スタッフ密着・裏側ドキュメント",
+    concept: "演者(スタッフ)の人柄で親近感を作り、ファン化を狙う共感型",
+    hook: "開店前の30分、ここでこんな準備をしています",
+    outline: "1. 仕込み風景\n2. スタッフのこだわりひと言\n3. 『待ってます』でCTA",
+  },
+  {
+    id: "p3",
+    title: "ビフォーアフター比較で驚きを作る",
+    concept: "変化の落差で視聴維持率を上げ、保存・シェアを狙う拡散型",
+    hook: "たった5分でこの変化、信じられますか?",
+    outline: "1. ビフォーを見せる\n2. プロセスを早回し\n3. アフター公開とCTA",
+  },
+];
+
+export const mockGeneratedScript: GeneratedScript = {
+  id: "script-mock",
+  planTitle: "開店3秒で伝わる看板メニュー紹介",
+  totalDurationSec: 30,
+  scenes: [
+    {
+      sceneNo: 1,
+      durationSec: 3,
+      visual: "看板メニューをスローモーションでドアップ。湯気や照りを強調",
+      narration: "この一杯のために、行列ができる。",
+      caption: "🏆 1番人気",
+      se: "シズル音(ジュー)+ 軽快なBGM開始",
+    },
+    {
+      sceneNo: 2,
+      durationSec: 12,
+      visual: "食材・調理工程を3カットで。手元のアップ中心",
+      narration: "厳選素材を、毎朝仕込みから。",
+      caption: "こだわり ①国産素材 ②毎朝仕込み ③秘伝のタレ",
+      se: "BGM継続、テロップ表示時にポップ音",
+    },
+    {
+      sceneNo: 3,
+      durationSec: 9,
+      visual: "お客様が笑顔で食べるシーン。店内の雰囲気も映す",
+      narration: "一度食べたら、また来たくなる。",
+      caption: "笑顔になれる一杯",
+      se: "BGM継続、賑わいの環境音",
+    },
+    {
+      sceneNo: 4,
+      durationSec: 6,
+      visual: "店舗外観 + プロフィールリンクを指さすジェスチャー",
+      narration: "ご予約はプロフィールのリンクから。",
+      caption: "プロフィールのリンクから予約 →",
+      se: "BGMフェードアウト + 通知音",
+    },
+  ],
+  hashtags: ["グルメ", "ランチ", "カフェ巡り", "本日のおすすめ"],
+  cta: "プロフィールのリンクから予約",
+};
 
 export const industryOptions: { value: string; label: string }[] = [
   { value: "food-beverage", label: "飲食" },
