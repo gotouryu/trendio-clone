@@ -14,6 +14,9 @@ import type { CustomerInteraction, InquiryCategory } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
@@ -27,7 +30,7 @@ export async function GET(
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const sb = await createSupabaseServer();
-  if (!sb) {
+  if (!sb || !UUID_RE.test(id)) {
     const list = mockInteractions
       .filter((i) => i.customerId === id)
       .sort(

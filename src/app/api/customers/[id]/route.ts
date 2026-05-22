@@ -13,6 +13,9 @@ import type { Customer } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
@@ -22,7 +25,7 @@ export async function GET(
   const { id } = await ctx.params;
 
   const sb = await createSupabaseServer();
-  if (!sb) {
+  if (!sb || !UUID_RE.test(id)) {
     const customer = mockCustomers.find((c) => c.id === id);
     if (!customer)
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
@@ -59,7 +62,7 @@ export async function PATCH(
   }
 
   const sb = await createSupabaseServer();
-  if (!sb) {
+  if (!sb || !UUID_RE.test(id)) {
     const customer = mockCustomers.find((c) => c.id === id);
     if (!customer)
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });

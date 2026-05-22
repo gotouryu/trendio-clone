@@ -20,6 +20,9 @@ import type { CustomerAIAnalysis, CustomerInteraction } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // レートリミット設定
 const PER_CUSTOMER_COOLDOWN_HOURS = 24; // 1顧客につき1日1回まで
 const PER_USER_COOLDOWN_SECONDS = 60; // 1ユーザー全体で1分1回まで(=連打防止)
@@ -65,7 +68,7 @@ export async function POST(
       }
     | null = null;
 
-  if (sb) {
+  if (sb && UUID_RE.test(id)) {
     const { data } = await sb
       .from("customers")
       .select("id, instagram_handle, ai_analysis, ai_analysis_at")
@@ -116,7 +119,7 @@ export async function POST(
 
   // 3. cache miss:ユーザー単位レートリミット(=LLM呼び出しコスト防御、DB由来で永続化)
   // 直近 PER_USER_COOLDOWN_SECONDS 秒以内に自分の顧客で生成があれば429
-  if (sb) {
+  if (sb && UUID_RE.test(id)) {
     const sinceIso = new Date(
       Date.now() - PER_USER_COOLDOWN_SECONDS * 1000,
     ).toISOString();
@@ -147,7 +150,7 @@ export async function POST(
 
   // 4. 接点履歴を集約(=トークン超過を避けるため件数 + 長さを制限)
   let interactions: CustomerInteraction[] = [];
-  if (sb) {
+  if (sb && UUID_RE.test(id)) {
     const { data: rows } = await sb
       .from("customer_interactions")
       .select("*")
@@ -247,7 +250,7 @@ ${historyText}
   }
 
   // 5. 永続化(=DB由来のレートリミット記録を兼ねる、サーバーレス環境でも有効)
-  if (sb) {
+  if (sb && UUID_RE.test(id)) {
     await sb
       .from("customers")
       .update({
