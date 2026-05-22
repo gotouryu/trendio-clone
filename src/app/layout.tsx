@@ -20,6 +20,7 @@ const geistMono = Geist_Mono({
 // Phase 4 修正:metadata は静的なので英語版に統一。
 // (=Meta/TikTok レビュアが英語UIで動作確認時にタブタイトルが日本語混在しないように)
 export const metadata: Metadata = {
+  metadataBase: new URL("https://karteia.vercel.app"),
   title: "Karteia | Customer Engagement & Sales Support Platform",
   description:
     "AI-powered customer engagement platform for small-to-medium businesses on Instagram and TikTok. Auto-reply, customer records, and audience insights in one place.",

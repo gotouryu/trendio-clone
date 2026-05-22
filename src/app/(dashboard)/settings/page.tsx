@@ -139,7 +139,7 @@ export default function SettingsPage() {
       url.searchParams.delete("error");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams, toast]);
+  }, [searchParams, toast, t]);
 
   async function disconnectSns(platform: "instagram" | "tiktok") {
     try {

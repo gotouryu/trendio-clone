@@ -71,6 +71,7 @@ export default function CommentsPage() {
   const [monthlyCount, setMonthlyCount] = useState(0);
   const [settings, setSettings] = useState<AutoReplySettings | null>(null);
   const [displayName, setDisplayName] = useState("お客様");
+  const [nowMs] = useState(() => Date.now());
 
   // 初期ロード:セッション・設定・ログを取得
   // ⚠️ mockData fallback は **API 到達失敗時のみ** 適用。
@@ -131,7 +132,6 @@ export default function CommentsPage() {
     let list = comments;
 
     if (filter !== "all") {
-      const nowMs = Date.now();
       const cutoff =
         filter === "today"
           ? (() => {
@@ -165,7 +165,7 @@ export default function CommentsPage() {
     });
 
     return list;
-  }, [filter, sortBy, query, comments]);
+  }, [filter, sortBy, query, comments, nowMs]);
 
   function handleReply(id: string) {
     if (!replyText.trim()) return;
@@ -239,7 +239,7 @@ export default function CommentsPage() {
         setAiGeneratingFor(null);
       }
     },
-    [toast],
+    [toast, t],
   );
 
   /**

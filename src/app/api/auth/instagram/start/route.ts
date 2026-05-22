@@ -10,7 +10,7 @@
  * このルート経由でログイン → callback で sns_accounts upsert → settings に戻る。
  * 未設定なら 503 を返してフォールバック。
  */
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { hasMeta } from "@/lib/env";
 import { buildInstagramOAuthUrl } from "@/lib/instagram";
 import { requireUser } from "@/lib/supabase/requireUser";
@@ -18,7 +18,7 @@ import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 

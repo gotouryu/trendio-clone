@@ -2,7 +2,7 @@
  * GET /api/auth/tiktok/start
  * TikTok OAuth フロー開始(=Instagram と同型)。
  */
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { hasTikTok } from "@/lib/env";
 import { buildTikTokOAuthUrl } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
@@ -10,7 +10,7 @@ import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 

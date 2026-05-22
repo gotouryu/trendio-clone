@@ -252,7 +252,7 @@ export default function AIContentPage() {
     toast("削除しました", "info");
   }
 
-  function copyScript(s: GeneratedScript) {
+  async function copyScript(s: GeneratedScript) {
     const text =
       `【${s.planTitle}】(合計 ${s.totalDurationSec}秒)\n\n` +
       s.scenes
@@ -267,7 +267,23 @@ export default function AIContentPage() {
         .join("\n\n") +
       `\n\nCTA: ${s.cta}\n` +
       `ハッシュタグ: ${s.hashtags.map((h) => `#${h}`).join(" ")}`;
-    navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!copied) {
+        toast("コピーできませんでした。ブラウザの権限を確認してください", "error");
+        return;
+      }
+    }
     setCopied(true);
     toast("台本をコピーしました", "success");
     setTimeout(() => setCopied(false), 1500);

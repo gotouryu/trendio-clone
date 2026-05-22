@@ -24,7 +24,6 @@ export function useLocalStorage<T>(
     } finally {
       setHydrated(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const setValue = useCallback(

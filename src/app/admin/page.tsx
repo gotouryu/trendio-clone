@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -40,15 +40,7 @@ export default function AdminPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [newCred, setNewCred] = useState<{ email: string; password: string } | null>(null);
 
-  useEffect(() => {
-    if (!isAdmin()) {
-      router.replace("/portal-helix-2026/login");
-      return;
-    }
-    fetchCustomers();
-  }, [router]);
-
-  async function fetchCustomers() {
+  const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/customers");
@@ -60,7 +52,15 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast, t]);
+
+  useEffect(() => {
+    if (!isAdmin()) {
+      router.replace("/portal-helix-2026/login");
+      return;
+    }
+    fetchCustomers();
+  }, [fetchCustomers, router]);
 
   async function handleLogout() {
     await logout();
