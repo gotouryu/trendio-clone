@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { login } from "@/lib/authClient";
+import { getSession, login } from "@/lib/authClient";
 import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
@@ -16,6 +16,13 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const session = getSession();
+    if (session) {
+      router.replace(session.role === "admin" ? "/admin" : "/dashboard");
+    }
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,7 +80,7 @@ export default function LoginPage() {
             {t("login.greeting")}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form method="post" onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="login-email"

@@ -532,6 +532,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
+  if (body.mode !== undefined && body.mode !== "plans" && body.mode !== "script") {
+    return NextResponse.json({ error: "mode must be plans or script" }, { status: 400 });
+  }
+
   const mode = body.mode === "script" ? "script" : "plans";
   const brief = sanitizeBrief(body.brief);
 

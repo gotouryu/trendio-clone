@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
             Helix Plus Admin Console
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form method="post" onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="admin-login-email"
