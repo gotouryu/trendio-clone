@@ -228,10 +228,15 @@ export type CustomerScriptTemplate = {
 
 export type ScriptPlatform = "instagram" | "tiktok" | "all";
 
-// 段階①の入力(=お客様が入力する10項目)
+// 段階①の入力(=企画と台本の精度に使う条件)
 export type ScriptBrief = {
   target: string;          // ターゲット(誰に向けた動画か)
   theme: string;           // 投稿テーマ
+  goal: string;            // 投稿目的(認知、保存、問い合わせなど)
+  sellingPoints: string;   // 訴求ポイント・根拠
+  avoidExpressions: string;// 避けたい表現
+  tone: string;            // 動画トーン
+  availableAssets: string; // 使える素材
   hasPerformer: boolean;   // 演者あり/なし
   hasNarration: boolean;   // ナレーションあり/なし
   mustInclude: string;     // 絶対に入れたい内容

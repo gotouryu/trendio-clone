@@ -12,15 +12,13 @@ export function getGemini(): GoogleGenAI | null {
 
 export const GEMINI_MODEL = env.geminiModel;
 
-/**
- * Gemini 2.5 Flash-Lite でテキスト生成する。
- * json=true で responseMimeType を application/json にして JSON 強制。
- */
+/** Gemini でテキスト生成する。JSON時はschemaも渡せる。 */
 export async function runGemini(opts: {
   system: string;
   user: string;
   maxTokens?: number;
   json?: boolean;
+  responseJsonSchema?: unknown;
 }): Promise<string> {
   const client = getGemini();
   if (!client) {
@@ -35,6 +33,9 @@ export async function runGemini(opts: {
       systemInstruction: opts.system,
       maxOutputTokens: opts.maxTokens ?? 2048,
       ...(opts.json ? { responseMimeType: "application/json" } : {}),
+      ...(opts.responseJsonSchema
+        ? { responseJsonSchema: opts.responseJsonSchema }
+        : {}),
     },
   });
   return resp.text ?? "";

@@ -32,6 +32,11 @@ function sanitizeBrief(raw: unknown): ScriptBrief {
   return {
     target: toStr(b.target),
     theme: toStr(b.theme),
+    goal: toStr(b.goal),
+    sellingPoints: toStr(b.sellingPoints),
+    avoidExpressions: toStr(b.avoidExpressions),
+    tone: toStr(b.tone),
+    availableAssets: toStr(b.availableAssets),
     hasPerformer: !!b.hasPerformer,
     hasNarration: !!b.hasNarration,
     mustInclude: toStr(b.mustInclude),
@@ -46,17 +51,24 @@ function sanitizeBrief(raw: unknown): ScriptBrief {
 
 // お客様が入力した10項目を、両プロンプトに同一フォーマットで注入する
 function briefBlock(b: ScriptBrief): string {
-  return `ターゲット: ${b.target || "未指定"}
-投稿テーマ: ${b.theme || "未指定"}
-演者: ${b.hasPerformer ? "あり(人物が出演)" : "なし(商品・資料・テロップ中心)"}
-ナレーション: ${b.hasNarration ? "あり(語り/セリフを入れる)" : "なし(テロップとBGMで進行)"}
-絶対に入れたい内容: ${b.mustInclude || "特になし"}
-動画の長さ: ${b.durationSec}秒
-CTA(視聴後にしてほしい行動): ${b.cta || "未指定"}
-会社名: ${b.companyName || "未指定"}
-会社URL: ${b.companyUrl || "なし"}
-参考URL: ${b.referenceUrl || "なし"}
-プラットフォーム: ${b.platform}`;
+  return `<brief>
+<target>${b.target || "未指定"}</target>
+<theme>${b.theme || "未指定"}</theme>
+<goal>${b.goal || "未指定"}</goal>
+<selling_points>${b.sellingPoints || "未指定。入力されていない根拠や強みは作らない"}</selling_points>
+<avoid_expressions>${b.avoidExpressions || "未指定"}</avoid_expressions>
+<tone>${b.tone || "未指定"}</tone>
+<available_assets>${b.availableAssets || "未指定"}</available_assets>
+<performer>${b.hasPerformer ? "あり。人物出演を使える" : "なし。商品・画面・資料・手元・テロップ中心で成立させる"}</performer>
+<narration>${b.hasNarration ? "あり。ナレーションまたはセリフを使える" : "なし。テロップと映像だけで意味を通す"}</narration>
+<must_include>${b.mustInclude || "特になし"}</must_include>
+<duration>${b.durationSec}秒</duration>
+<cta>${b.cta || "未指定"}</cta>
+<company_name>${b.companyName || "未指定"}</company_name>
+<company_url>${b.companyUrl || "なし"}</company_url>
+<reference_url>${b.referenceUrl || "なし。URLの中身は解析しない"}</reference_url>
+<platform>${b.platform}</platform>
+</brief>`;
 }
 
 function stripFence(raw: string): string {
@@ -163,34 +175,157 @@ function normalizeScript(raw: unknown, plan: PlanIdea, brief: ScriptBrief): Gene
   };
 }
 
+const PLAN_SCHEMA = {
+  type: "array",
+  minItems: 3,
+  maxItems: 3,
+  items: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      title: {
+        type: "string",
+        description: "短く覚えやすい企画タイトル。視聴者向けではなく選択肢名。",
+      },
+      concept: {
+        type: "string",
+        description: "ターゲットの関心とCTAをつなぐ企画意図。",
+      },
+      hook: {
+        type: "string",
+        description: "リール冒頭2秒でスクロールを止めるテロップまたは一言。",
+      },
+      outline: {
+        type: "string",
+        description: "動画の流れ。2から4行で冒頭、本編、CTAが分かる。",
+      },
+    },
+    required: ["title", "concept", "hook", "outline"],
+  },
+} as const;
+
+const SCRIPT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    planTitle: {
+      type: "string",
+      description: "選択された企画タイトル。",
+    },
+    totalDurationSec: {
+      type: "integer",
+      description: "台本全体の秒数。",
+    },
+    scenes: {
+      type: "array",
+      minItems: 3,
+      maxItems: 12,
+      description: "撮影と編集に使うシーン別台本。",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          sceneNo: { type: "integer", description: "1始まりのシーン番号。" },
+          durationSec: { type: "integer", description: "そのシーンの秒数。" },
+          visual: {
+            type: "string",
+            description: "被写体、画角、動きが分かる具体的な映像指示。",
+          },
+          narration: {
+            type: "string",
+            description: "ナレーションまたはセリフ。ナレーションなし指定なら空文字。",
+          },
+          caption: {
+            type: "string",
+            description: "画面に出す短いテロップ。",
+          },
+          se: {
+            type: "string",
+            description: "効果音またはBGM指示。",
+          },
+        },
+        required: [
+          "sceneNo",
+          "durationSec",
+          "visual",
+          "narration",
+          "caption",
+          "se",
+        ],
+      },
+    },
+    hashtags: {
+      type: "array",
+      minItems: 3,
+      maxItems: 6,
+      items: { type: "string" },
+      description: "#を除いたハッシュタグ候補。",
+    },
+    cta: {
+      type: "string",
+      description: "最終シーンで視聴者へ促す行動。",
+    },
+  },
+  required: ["planTitle", "totalDurationSec", "scenes", "hashtags", "cta"],
+} as const;
+
 // ------------------------------------------------------------
 // 段階①:企画案を3つ生成
 // ------------------------------------------------------------
-const SYSTEM_PLANS = `あなたはSNS縦型動画(Instagramリール)専門の構成作家です。視聴維持率と問い合わせ・保存・購入などのCTA達成率を最大化する企画を考えます。
+const SYSTEM_PLANS = `<role>
+あなたは日本の中小企業向けInstagramリールを設計するSNS動画プランナーです。
+企画の価値は「ターゲットが止まる」「内容が会社の訴求に合う」「台本化して撮れる」の3点で判定します。
+</role>
 
-ユーザーから動画の条件を受け取り、性質の異なる企画案を3つ提案してください。各案は以下のフィールドを持つJSONオブジェクトです:
+<task>
+ユーザー入力だけを根拠に、動画尺に収まる企画案を複数検討し、最も良い3案だけ返してください。
+3案は互いに切り口を変え、ユーザーが比較して選べる差を作ってください。
+</task>
+
+<quality_bar>
+- 1案目はターゲットの悩み・欲求への共感を起点にする
+- 2案目はチェック、比較、意外性、検証のいずれかで続きを見たくさせる
+- 3案目は信頼、根拠、利用シーン、裏側のいずれかで会社らしさを出す
+- 企画ごとに「何を見せる動画か」と「なぜCTAへ進むか」が読み取れる
+- テンプレ感の強い言葉だけで埋めず、入力テーマに固有の要素を使う
+</quality_bar>
+
+<output_fields>
 - title: 企画タイトル(30文字以内)
 - concept: 企画の狙い・コンセプト(80文字以内)
 - hook: 冒頭2秒の掴み(視聴者がスワイプを止める一言、60文字以内)
 - outline: 構成の概要(2〜3行、改行で区切る)
+</output_fields>
 
-必ず守ること:
-- 3案は「課題共感型」「意外性・検証型」「信頼・実績型」のように切り口を明確に変える
+<constraints>
 - ターゲット・投稿テーマ・絶対に入れたい内容・CTAを3案すべてに反映する
-- 商品名や会社名がある場合は自然に入れ、広告っぽい押し売りだけの企画にしない
+- 投稿目的、訴求ポイント、動画トーン、使える素材がある時は企画の方向と見せ方に反映する
+- 避けたい表現がある時は言い換えまたは企画構造で回避する
+- 未入力の実績、数値、口コミ、制度、効果を事実のように捏造しない
+- 商品名や会社名がある場合は自然に扱い、押し売りだけの広告企画にしない
 - 動画の長さに収まる構成にする
 - 演者なし指定なら人物出演を前提にしない。ナレーションなし指定ならテロップ主体にする
-- 参考URLは雰囲気・構成の参考として扱い、動画解析できる前提で書かない
+- 参考URLの中身を見た前提にしない。URLがある時も入力条件から企画を作る
+</constraints>
 
-出力は厳密に次のJSON配列のみ。前置き・解説・コードフェンスは一切禁止:
-[{"title":"...","concept":"...","hook":"...","outline":"..."},{...},{...}]`;
+<output_rule>
+出力はJSON配列のみ。解説、採点、コードフェンス、思考過程は返さない。
+</output_rule>`;
 
 // ------------------------------------------------------------
 // 段階②:選択企画 → シーン別台本
 // ------------------------------------------------------------
-const SYSTEM_SCRIPT = `あなたはSNS縦型動画専門の構成作家です。採用された企画案を、撮影・編集できる粒度のシーン別台本に分解します。
+const SYSTEM_SCRIPT = `<role>
+あなたは日本のInstagramリールを撮影・編集できる台本へ落とす動画ディレクターです。
+台本の価値は「冒頭で止まる」「映像が撮れる」「テロップだけでも意味が通る」「CTAが自然」の4点で判定します。
+</role>
 
-出力する台本は以下のJSONオブジェクトです:
+<task>
+選択済み企画を、指定尺ぴったりのシーン別台本にしてください。
+撮影担当が追加説明なしで絵を想像できる具体性を優先してください。
+</task>
+
+<output_fields>
 - planTitle: 企画タイトル
 - totalDurationSec: 合計尺(秒、指定の動画の長さに一致させる)
 - scenes: シーン配列。各シーンは {sceneNo, durationSec, visual, narration, caption, se}
@@ -202,17 +337,31 @@ const SYSTEM_SCRIPT = `あなたはSNS縦型動画専門の構成作家です。
   - se: SE(効果音やBGMの指示)
 - hashtags: ハッシュタグ配列(3〜6個、#は含めない)
 - cta: 最終シーンの行動喚起(指定のCTAを使う)
+</output_fields>
 
-必ず守ること:
+<quality_bar>
+- シーン1は結論、疑問、違和感、失敗回避のいずれかで視聴者を止める
+- 本編は同じ画の繰り返しを避け、チェック、比較、手元、商品、画面、人物リアクションなど画変わりを作る
+- captionはスマホで一瞬で読める短さにする
+- CTA直前に、CTAへ進む理由になる価値や納得を置く
+</quality_bar>
+
+<constraints>
 - 1シーンは2〜8秒を目安にし、全シーンの durationSec の合計を指定の動画の長さ(秒)に一致させる
 - 冒頭2秒で何が得られる動画か分かる構成にする
 - 絶対に入れたい内容を必ずどこかのシーンに含める
+- 投稿目的、訴求ポイント、動画トーン、使える素材がある時は映像指示とCTA導線に反映する
+- 避けたい表現がある時はcaptionとnarrationでも避ける
 - 演者あり/なし・ナレーションあり/なしの指定を厳守する
 - ナレーションなし指定なら narration は必ず空文字 "" にし、caption だけで意味が通るようにする
 - visual は「何を撮るか」が分かる具体表現にする。抽象語だけにしない
+- 入力されていない数値、実績、効能、口コミを事実として作らない
 - 最後のシーンに必ずCTAを入れる
+</constraints>
 
-出力は厳密に上記JSONオブジェクトのみ。前置き・解説・コードフェンスは一切禁止。`;
+<output_rule>
+出力はJSONオブジェクトのみ。前置き、解説、採点、思考過程、コードフェンスは返さない。
+</output_rule>`;
 
 // ------------------------------------------------------------
 // POST
@@ -249,9 +398,9 @@ export async function POST(req: NextRequest) {
   const mode = body.mode === "script" ? "script" : "plans";
   const brief = sanitizeBrief(body.brief);
 
-  if (!brief.theme && !brief.target) {
+  if (!brief.theme || !brief.target) {
     return NextResponse.json(
-      { error: "投稿テーマかターゲットのどちらかは必須です" },
+      { error: "ターゲットと投稿テーマは必須です" },
       { status: 400 },
     );
   }
@@ -264,16 +413,20 @@ export async function POST(req: NextRequest) {
         mock: true,
       });
     }
-    const userPrompt = `# 動画の条件
+    const userPrompt = `<user_context>
 ${briefBlock(brief)}
+</user_context>
 
-上記すべての条件を踏まえ、性質の異なる企画案を3つ生成してください。`;
+<request>
+上記条件に適合する企画案を内部で比較し、ターゲット適合度、企画の差、撮影可能性、CTA接続が高い3案だけ返してください。
+</request>`;
     try {
       const raw = await runGemini({
         system: SYSTEM_PLANS,
         user: userPrompt,
         maxTokens: 2048,
         json: true,
+        responseJsonSchema: PLAN_SCHEMA,
       });
       const plans = normalizePlans(JSON.parse(stripFence(raw)));
       if (plans.length < 2) {
@@ -309,22 +462,28 @@ ${briefBlock(brief)}
     });
   }
 
-  const userPrompt = `# 採用する企画案
-タイトル: ${plan.title}
-コンセプト: ${plan.concept}
-フック: ${plan.hook}
-構成概要: ${plan.outline}
+  const userPrompt = `<selected_plan>
+<title>${plan.title}</title>
+<concept>${plan.concept}</concept>
+<hook>${plan.hook}</hook>
+<outline>${plan.outline}</outline>
+</selected_plan>
 
-# 動画の条件(再掲)
+<user_context>
 ${briefBlock(brief)}
+</user_context>
 
-上記の企画案を、${brief.durationSec}秒のシーン別台本に分解してください。`;
+<request>
+選択企画を${brief.durationSec}秒のシーン別台本にしてください。
+条件が不足していても入力されていない事実は捏造せず、撮影指示とテロップの工夫で成立させてください。
+</request>`;
   try {
     const raw = await runGemini({
       system: SYSTEM_SCRIPT,
       user: userPrompt,
       maxTokens: 4096,
       json: true,
+      responseJsonSchema: SCRIPT_SCHEMA,
     });
     const script = normalizeScript(JSON.parse(stripFence(raw)), plan, brief);
     if (!script) {

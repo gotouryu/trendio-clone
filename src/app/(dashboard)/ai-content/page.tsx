@@ -21,10 +21,31 @@ import { Tooltip } from "@/components/ui/Tooltip";
 type Step = "input" | "plans" | "script";
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
+const GOAL_OPTIONS = [
+  "認知を広げる",
+  "保存してもらう",
+  "問い合わせを増やす",
+  "購入につなげる",
+  "来店につなげる",
+  "採用応募につなげる",
+];
+const TONE_OPTIONS = [
+  "親しみやすい",
+  "信頼感",
+  "驚き・意外性",
+  "上質",
+  "専門家風",
+  "テンポ重視",
+];
 
 const emptyBrief: ScriptBrief = {
   target: "",
   theme: "",
+  goal: "",
+  sellingPoints: "",
+  avoidExpressions: "",
+  tone: "",
+  availableAssets: "",
   hasPerformer: true,
   hasNarration: true,
   mustInclude: "",
@@ -101,8 +122,8 @@ export default function AIContentPage() {
   }
 
   async function generatePlans() {
-    if (!brief.theme && !brief.target) {
-      toast("ターゲットか投稿テーマを入力してください", "error");
+    if (!brief.theme || !brief.target) {
+      toast("ターゲットと投稿テーマを入力してください", "error");
       return;
     }
     setLoadingPlans(true);
@@ -135,6 +156,8 @@ export default function AIContentPage() {
       setLoadingPlans(false);
     }
   }
+
+  const missingRequired = !brief.target.trim() || !brief.theme.trim();
 
   async function generateScript(plan: PlanIdea) {
     setSelectedPlan(plan);
@@ -300,22 +323,76 @@ export default function AIContentPage() {
           {/* ========== 段階0:入力フォーム(10項目) ========== */}
           {step === "input" && (
             <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-6 space-y-5">
-              <Field label="ターゲット" hint="誰に向けた動画か(例:20代の美容好きな女性)">
+              <div className="rounded-lg border border-emerald-100 dark:border-emerald-900 bg-emerald-50/70 dark:bg-emerald-900/20 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+                必須項目はターゲットと投稿テーマです。未入力では企画案を生成できません。
+              </div>
+
+              <Field
+                label="ターゲット"
+                hint="誰に向けた動画か(例:20代の美容好きな女性)"
+                required
+              >
                 <input
                   type="text"
                   value={brief.target}
                   onChange={(e) => set("target", e.target.value)}
                   placeholder="例:23〜35歳の共働き世帯、時短に関心"
                   className={inputCls}
+                  required
                 />
               </Field>
 
-              <Field label="投稿テーマ" hint="何についての動画か">
+              <Field label="投稿テーマ" hint="何についての動画か" required>
                 <input
                   type="text"
                   value={brief.theme}
                   onChange={(e) => set("theme", e.target.value)}
                   placeholder="例:新発売の冷凍弁当の紹介"
+                  className={inputCls}
+                  required
+                />
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field label="投稿目的" hint="選ぶと企画のゴールが明確になります">
+                  <select
+                    value={brief.goal}
+                    onChange={(e) => set("goal", e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">選択してください</option>
+                    {GOAL_OPTIONS.map((goal) => (
+                      <option key={goal} value={goal}>
+                        {goal}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="動画トーン" hint="見せ方の雰囲気">
+                  <select
+                    value={brief.tone}
+                    onChange={(e) => set("tone", e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">指定なし</option>
+                    {TONE_OPTIONS.map((tone) => (
+                      <option key={tone} value={tone}>
+                        {tone}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <Field
+                label="訴求ポイント・根拠"
+                hint="価格、特徴、実績、比較優位、提供エリアなど"
+              >
+                <textarea
+                  value={brief.sellingPoints}
+                  onChange={(e) => set("sellingPoints", e.target.value)}
+                  placeholder="例:当日予約OK、初回30分無料、地域密着で累計300件対応"
+                  rows={3}
                   className={inputCls}
                 />
               </Field>
@@ -339,9 +416,36 @@ export default function AIContentPage() {
                 </Field>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field
+                  label="避けたい表現"
+                  hint="使いたくない語句、誇大表現、断定回避など"
+                >
+                  <textarea
+                    value={brief.avoidExpressions}
+                    onChange={(e) => set("avoidExpressions", e.target.value)}
+                    placeholder="例:絶対、業界No.1、競合名は使わない"
+                    rows={3}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field
+                  label="使える素材"
+                  hint="撮影で使える物や画面"
+                >
+                  <textarea
+                    value={brief.availableAssets}
+                    onChange={(e) => set("availableAssets", e.target.value)}
+                    placeholder="例:店舗外観、商品パッケージ、スマホ画面、手元撮影"
+                    rows={3}
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+
               <Field
                 label="絶対に入れたい内容"
-                hint="必ず盛り込む要素・キーワード(任意)"
+                hint="強み・根拠・NG回避したい表現もここに追記可"
               >
                 <div className="relative">
                   <textarea
@@ -441,7 +545,7 @@ export default function AIContentPage() {
 
               <button
                 onClick={generatePlans}
-                disabled={loadingPlans}
+                disabled={loadingPlans || missingRequired}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50"
               >
                 <Sparkles className="w-4 h-4" />
@@ -584,16 +688,23 @@ const inputCls =
 function Field({
   label,
   hint,
+  required,
   children,
 }: {
   label: string;
   hint?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         {label}
+        {required && (
+          <span className="ml-2 inline-flex rounded bg-rose-100 dark:bg-rose-900/40 px-1.5 py-0.5 text-[11px] font-semibold text-rose-700 dark:text-rose-200">
+            必須
+          </span>
+        )}
         {hint && (
           <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
             {hint}
