@@ -19,8 +19,9 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const pagination = parsePagination(searchParams, 50, 200);
+  if (!pagination.ok) return pagination.response;
+  const { limit, offset } = pagination;
   const statusFilter = searchParams.get("status");
 
   const sb = await createSupabaseServer();
@@ -77,4 +78,36 @@ export async function GET(req: NextRequest) {
     monthlyCount: monthlyCount ?? 0,
     mock: false,
   });
+}
+
+function parsePagination(
+  searchParams: URLSearchParams,
+  defaultLimit: number,
+  maxLimit: number,
+):
+  | { ok: true; limit: number; offset: number }
+  | { ok: false; response: NextResponse } {
+  const limitParam = searchParams.get("limit");
+  const offsetParam = searchParams.get("offset");
+  const limit = limitParam === null ? defaultLimit : Number(limitParam);
+  const offset = offsetParam === null ? 0 : Number(offsetParam);
+
+  if (
+    !Number.isInteger(limit) ||
+    !Number.isInteger(offset) ||
+    limit < 1 ||
+    limit > maxLimit ||
+    offset < 0 ||
+    offset > 100000
+  ) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: `limit must be 1-${maxLimit} and offset must be 0-100000` },
+        { status: 400 },
+      ),
+    };
+  }
+
+  return { ok: true, limit, offset };
 }

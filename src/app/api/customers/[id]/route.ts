@@ -95,6 +95,15 @@ export async function PATCH(
   if (body.status !== undefined && ALLOWED_STATUS.includes(body.status)) {
     payload.status = body.status;
   }
+  if (
+    body.autoReplyEnabled !== undefined &&
+    typeof body.autoReplyEnabled !== "boolean"
+  ) {
+    return NextResponse.json(
+      { error: "autoReplyEnabled must be boolean" },
+      { status: 400 },
+    );
+  }
   if (body.autoReplyEnabled !== undefined)
     payload.auto_reply_enabled = body.autoReplyEnabled;
   if (

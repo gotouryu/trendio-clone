@@ -32,10 +32,9 @@ export async function GET(req: NextRequest) {
   const searchLike = cleaned.replace(/_/g, "\\_"); // PostgREST ilike 用にエスケープ
   const status = searchParams.get("status");
   const tag = searchParams.get("tag");
-  const limitRaw = parseInt(searchParams.get("limit") ?? "50", 10);
-  const offsetRaw = parseInt(searchParams.get("offset") ?? "0", 10);
-  const limit = Math.min(Number.isFinite(limitRaw) ? limitRaw : 50, 200);
-  const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+  const pagination = parsePagination(searchParams, 50, 200);
+  if (!pagination.ok) return pagination.response;
+  const { limit, offset } = pagination;
 
   const sb = await createSupabaseServer();
   if (!sb) {
@@ -120,6 +119,15 @@ export async function POST(req: NextRequest) {
   if (body.displayName && body.displayName.length > 80) {
     return NextResponse.json(
       { error: "displayName too long" },
+      { status: 400 },
+    );
+  }
+  if (
+    body.autoReplyEnabled !== undefined &&
+    typeof body.autoReplyEnabled !== "boolean"
+  ) {
+    return NextResponse.json(
+      { error: "autoReplyEnabled must be boolean" },
       { status: 400 },
     );
   }
@@ -250,4 +258,36 @@ function rowToCustomer(row: CustomerRow): Customer {
     gender: row.gender ?? undefined,
     region: row.region ?? undefined,
   };
+}
+
+function parsePagination(
+  searchParams: URLSearchParams,
+  defaultLimit: number,
+  maxLimit: number,
+):
+  | { ok: true; limit: number; offset: number }
+  | { ok: false; response: NextResponse } {
+  const limitParam = searchParams.get("limit");
+  const offsetParam = searchParams.get("offset");
+  const limit = limitParam === null ? defaultLimit : Number(limitParam);
+  const offset = offsetParam === null ? 0 : Number(offsetParam);
+
+  if (
+    !Number.isInteger(limit) ||
+    !Number.isInteger(offset) ||
+    limit < 1 ||
+    limit > maxLimit ||
+    offset < 0 ||
+    offset > 100000
+  ) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: `limit must be 1-${maxLimit} and offset must be 0-100000` },
+        { status: 400 },
+      ),
+    };
+  }
+
+  return { ok: true, limit, offset };
 }

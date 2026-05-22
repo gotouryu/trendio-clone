@@ -42,7 +42,12 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  if (!body.email || !body.companyName) {
+  if (
+    typeof body.email !== "string" ||
+    typeof body.companyName !== "string" ||
+    !body.email.trim() ||
+    !body.companyName.trim()
+  ) {
     return NextResponse.json(
       { error: "email and companyName required" },
       { status: 400 },
@@ -50,11 +55,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Phase 3 Wave-B:Email/CompanyName の長さ・形式 軽量バリデーション
-  if (body.email.length > 200 || body.companyName.length > 200) {
+  const email = body.email.trim();
+  const companyName = body.companyName.trim();
+  if (email.length > 200 || companyName.length > 80) {
     return NextResponse.json({ error: "input too long" }, { status: 400 });
   }
   // 簡易メアド形式チェック(=完全形式は Supabase Auth 側で再検証)
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json(
       { error: "invalid email format" },
       { status: 400 },
@@ -66,10 +73,10 @@ export async function POST(req: NextRequest) {
   const password = generatePassword(12);
 
   const { data, error } = await admin.auth.admin.createUser({
-    email: body.email,
+    email,
     password,
     email_confirm: true, // skip email confirmation; admin issues the account
-    user_metadata: { company_name: body.companyName, role: "customer" },
+    user_metadata: { company_name: companyName, role: "customer" },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
