@@ -482,6 +482,7 @@ export default function CommentsPage() {
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(c.timestamp).toLocaleString("ja-JP", {
+                            timeZone: "Asia/Tokyo",
                             month: "2-digit",
                             day: "2-digit",
                             hour: "2-digit",
@@ -746,6 +747,7 @@ function LogRow({ log }: { log: AutoReplyLog }) {
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {new Date(log.repliedAt).toLocaleString("ja-JP", {
+                timeZone: "Asia/Tokyo",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
