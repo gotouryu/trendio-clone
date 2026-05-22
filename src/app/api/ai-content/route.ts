@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasGemini } from "@/lib/env";
-import { runGemini } from "@/lib/geminiClient";
+import { GEMINI_MODEL, runGemini } from "@/lib/geminiClient";
 import { mockPlanIdeas, mockGeneratedScript } from "@/lib/mockData";
 import type {
   ScriptBrief,
@@ -10,6 +10,7 @@ import type {
   ScriptScene,
 } from "@/lib/types";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { assertSameOrigin } from "@/lib/csrf";
 import { consumeRateLimit } from "@/lib/rateLimit";
 
@@ -17,6 +18,106 @@ export const runtime = "nodejs";
 
 const MAX_FIELD = 500; // 1フィールド最大500文字(=トークン爆発防止)
 const MIN_SCENE_SEC = 2;
+const MONTHLY_AI_LIMIT = 20;
+
+type UsageInfo = {
+  used: number;
+  limit: number;
+  remaining: number;
+};
+
+function currentUsageMonth() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date());
+}
+
+function normalizeUsage(row: unknown, fallbackLimit = MONTHLY_AI_LIMIT): UsageInfo {
+  const usage = asObject(row);
+  const limit = Math.max(1, Number(usage.monthly_limit) || fallbackLimit);
+  const used = Math.max(0, Number(usage.used ?? usage.count) || 0);
+  return {
+    used,
+    limit,
+    remaining: Math.max(0, Number(usage.remaining) || limit - used),
+  };
+}
+
+async function getMonthlyUsage(userId: string): Promise<UsageInfo> {
+  const sb = createSupabaseAdmin();
+  const month = currentUsageMonth();
+  const { data, error } = await sb
+    .from("ai_content_monthly_usage")
+    .select("count, monthly_limit")
+    .eq("user_id", userId)
+    .eq("month", month)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`monthly usage lookup failed: ${error.message}`);
+  }
+  return normalizeUsage(data ?? { count: 0, monthly_limit: MONTHLY_AI_LIMIT });
+}
+
+async function consumeMonthlyUsage(userId: string): Promise<
+  | { allowed: true; usage: UsageInfo }
+  | { allowed: false; usage: UsageInfo }
+> {
+  const sb = createSupabaseAdmin();
+  const { data, error } = await sb.rpc("consume_ai_content_monthly_quota", {
+    p_user_id: userId,
+    p_month: currentUsageMonth(),
+    p_limit: MONTHLY_AI_LIMIT,
+  });
+
+  if (error) {
+    throw new Error(`monthly usage consume failed: ${error.message}`);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const normalized = normalizeUsage(row);
+  return {
+    allowed: !!asObject(row).allowed,
+    usage: normalized,
+  };
+}
+
+async function logAiContentGeneration({
+  userId,
+  mode,
+  status,
+  counted,
+  mock,
+  errorMessage,
+}: {
+  userId: string;
+  mode: "plans" | "script";
+  status: "success" | "blocked_quota" | "fallback" | "error";
+  counted: boolean;
+  mock: boolean;
+  errorMessage?: string;
+}) {
+  try {
+    const sb = createSupabaseAdmin();
+    await sb.from("ai_content_generation_logs").insert({
+      user_id: userId,
+      month: currentUsageMonth(),
+      mode,
+      model: GEMINI_MODEL,
+      counted,
+      mock,
+      status,
+      error_message: errorMessage?.slice(0, 500) ?? null,
+    });
+  } catch (err) {
+    console.warn(
+      "[ai-content] generation log failed:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
 
 // ------------------------------------------------------------
 // 入力サニタイズ
@@ -387,6 +488,21 @@ const SYSTEM_SCRIPT = `<role>
 // ------------------------------------------------------------
 // POST
 // ------------------------------------------------------------
+export async function GET() {
+  const auth = await requireUser();
+  if (!auth.ok) return auth.response;
+  try {
+    const usage = await getMonthlyUsage(auth.userId);
+    return NextResponse.json({ usage });
+  } catch (err) {
+    console.error("[ai-content] usage lookup failed:", err);
+    return NextResponse.json(
+      { error: "AI生成の利用回数を確認できませんでした" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const csrf = assertSameOrigin(req);
   if (csrf) return csrf;
@@ -429,10 +545,30 @@ export async function POST(req: NextRequest) {
   // ---------- 段階①:企画案生成 ----------
   if (mode === "plans") {
     if (!hasGemini()) {
+      const usage = await getMonthlyUsage(auth.userId);
       return NextResponse.json({
         plans: mockPlanIdeas.map((p) => ({ ...p, id: `mock-${Date.now()}-${p.id}` })),
         mock: true,
+        usage,
       });
+    }
+    const quota = await consumeMonthlyUsage(auth.userId);
+    if (!quota.allowed) {
+      await logAiContentGeneration({
+        userId: auth.userId,
+        mode: "plans",
+        status: "blocked_quota",
+        counted: false,
+        mock: false,
+        errorMessage: "monthly quota exceeded",
+      });
+      return NextResponse.json(
+        {
+          error: `今月のAI生成上限(${quota.usage.limit}回)に達しました。来月まで生成できません。`,
+          usage: quota.usage,
+        },
+        { status: 429 },
+      );
     }
     const userPrompt = `<user_context>
 ${briefBlock(brief)}
@@ -454,11 +590,27 @@ ${briefBlock(brief)}
       if (plans.length < 2) {
         throw new Error("Gemini returned too few valid plans");
       }
-      return NextResponse.json({ plans, mock: false });
-    } catch {
+      await logAiContentGeneration({
+        userId: auth.userId,
+        mode: "plans",
+        status: "success",
+        counted: true,
+        mock: false,
+      });
+      return NextResponse.json({ plans, mock: false, usage: quota.usage });
+    } catch (err) {
+      await logAiContentGeneration({
+        userId: auth.userId,
+        mode: "plans",
+        status: "fallback",
+        counted: true,
+        mock: true,
+        errorMessage: err instanceof Error ? err.message : "Gemini response parse failed",
+      });
       return NextResponse.json({
         plans: mockPlanIdeas.map((p) => ({ ...p, id: `fallback-${Date.now()}-${p.id}` })),
         mock: true,
+        usage: quota.usage,
         warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
       });
     }
@@ -478,10 +630,31 @@ ${briefBlock(brief)}
   }
 
   if (!hasGemini()) {
+    const usage = await getMonthlyUsage(auth.userId);
     return NextResponse.json({
       script: { ...mockGeneratedScript, id: `mock-${Date.now()}`, planTitle: plan.title },
       mock: true,
+      usage,
     });
+  }
+
+  const quota = await consumeMonthlyUsage(auth.userId);
+  if (!quota.allowed) {
+    await logAiContentGeneration({
+      userId: auth.userId,
+      mode: "script",
+      status: "blocked_quota",
+      counted: false,
+      mock: false,
+      errorMessage: "monthly quota exceeded",
+    });
+    return NextResponse.json(
+      {
+        error: `今月のAI生成上限(${quota.usage.limit}回)に達しました。来月まで生成できません。`,
+        usage: quota.usage,
+      },
+      { status: 429 },
+    );
   }
 
   const userPrompt = `<selected_plan>
@@ -512,11 +685,27 @@ ${briefBlock(brief)}
     if (!script) {
       throw new Error("Gemini returned no valid scenes");
     }
-    return NextResponse.json({ script, mock: false });
-  } catch {
+    await logAiContentGeneration({
+      userId: auth.userId,
+      mode: "script",
+      status: "success",
+      counted: true,
+      mock: false,
+    });
+    return NextResponse.json({ script, mock: false, usage: quota.usage });
+  } catch (err) {
+    await logAiContentGeneration({
+      userId: auth.userId,
+      mode: "script",
+      status: "fallback",
+      counted: true,
+      mock: true,
+      errorMessage: err instanceof Error ? err.message : "Gemini response parse failed",
+    });
     return NextResponse.json({
       script: { ...mockGeneratedScript, id: `fallback-${Date.now()}`, planTitle: plan.title },
       mock: true,
+      usage: quota.usage,
       warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
     });
   }

@@ -19,6 +19,11 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 type Step = "input" | "plans" | "script";
+type UsageInfo = {
+  used: number;
+  limit: number;
+  remaining: number;
+};
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
 const GOAL_OPTIONS = [
@@ -96,6 +101,8 @@ export default function AIContentPage() {
   const [loadingScript, setLoadingScript] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usingMock, setUsingMock] = useState(false);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
 
   const [saved, setSaved] = useLocalStorage<GeneratedScript[]>(
     "karteia-saved-scripts",
@@ -114,6 +121,35 @@ export default function AIContentPage() {
     return () => {
       window.clearTimeout(id);
       recRef.current?.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/ai-content", { method: "GET" });
+          const data = (await res.json()) as {
+            usage?: UsageInfo;
+            error?: string;
+          };
+          if (cancelled) return;
+          if (!res.ok || !data.usage) {
+            throw new Error(data.error ?? "利用回数を確認できませんでした");
+          }
+          setUsage(data.usage);
+          setUsageError(null);
+        } catch (e) {
+          if (cancelled) return;
+          const msg = e instanceof Error ? e.message : "利用回数を確認できませんでした";
+          setUsageError(msg);
+        }
+      })();
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
     };
   }, []);
 
@@ -140,7 +176,9 @@ export default function AIContentPage() {
         mock?: boolean;
         warning?: string;
         error?: string;
+        usage?: UsageInfo;
       };
+      if (data.usage) setUsage(data.usage);
       if (!res.ok) throw new Error(data.error ?? "企画案の生成に失敗しました");
       setPlans(data.plans);
       setUsingMock(!!data.mock);
@@ -158,6 +196,9 @@ export default function AIContentPage() {
   }
 
   const missingRequired = !brief.target.trim() || !brief.theme.trim();
+  const quotaUnavailable = !usage || !!usageError;
+  const quotaExceeded = !!usage && usage.remaining <= 0;
+  const generationDisabled = quotaUnavailable || quotaExceeded;
 
   async function generateScript(plan: PlanIdea) {
     setSelectedPlan(plan);
@@ -175,7 +216,9 @@ export default function AIContentPage() {
         mock?: boolean;
         warning?: string;
         error?: string;
+        usage?: UsageInfo;
       };
+      if (data.usage) setUsage(data.usage);
       if (!res.ok) throw new Error(data.error ?? "台本の生成に失敗しました");
       setScript(data.script);
       setUsingMock(!!data.mock);
@@ -308,6 +351,33 @@ export default function AIContentPage() {
         <>
           {/* ステップ進捗表示 */}
           <StepBar step={step} />
+
+          <div
+            className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+              quotaExceeded || usageError
+                ? "border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-200"
+                : "border-emerald-100 dark:border-emerald-900 bg-emerald-50/70 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200"
+            }`}
+          >
+            {usage ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium">
+                  今月のAI生成: {usage.used}/{usage.limit}回
+                </span>
+                <span>
+                  {quotaExceeded
+                    ? "上限に達したため、来月まで生成できません。"
+                    : `残り ${usage.remaining} 回生成できます。`}
+                </span>
+              </div>
+            ) : (
+              <span>
+                {usageError
+                  ? `利用回数を確認できません: ${usageError}`
+                  : "今月のAI生成回数を確認しています..."}
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-lg text-sm">
@@ -545,11 +615,15 @@ export default function AIContentPage() {
 
               <button
                 onClick={generatePlans}
-                disabled={loadingPlans || missingRequired}
+                disabled={loadingPlans || missingRequired || generationDisabled}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50"
               >
                 <Sparkles className="w-4 h-4" />
-                {loadingPlans ? "企画案を生成中..." : "企画案を生成する"}
+                {loadingPlans
+                  ? "企画案を生成中..."
+                  : quotaExceeded
+                    ? "今月の生成上限に達しました"
+                    : "企画案を生成する"}
               </button>
             </div>
           )}
@@ -582,13 +656,15 @@ export default function AIContentPage() {
                   </div>
                   <button
                     onClick={() => generateScript(p)}
-                    disabled={loadingScript}
+                    disabled={loadingScript || generationDisabled}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50"
                   >
                     <Film className="w-4 h-4" />
                     {loadingScript && selectedPlan?.id === p.id
                       ? "台本を生成中..."
-                      : "この企画で台本を作る"}
+                      : quotaExceeded
+                        ? "今月の生成上限に達しました"
+                        : "この企画で台本を作る"}
                   </button>
                 </div>
               ))}
