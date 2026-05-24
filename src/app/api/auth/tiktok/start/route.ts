@@ -6,6 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasTikTok } from "@/lib/env";
 import { buildTikTokOAuthUrl } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
@@ -13,6 +14,13 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "oauth_tiktok_start",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   if (!hasTikTok()) {
     return NextResponse.redirect(new URL("/settings?error=tiktok_not_configured", req.url));

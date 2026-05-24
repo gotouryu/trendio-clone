@@ -19,6 +19,7 @@ import {
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { encryptToken } from "@/lib/tokenCrypto";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,13 @@ function redirectSettings(req: NextRequest, params: Record<string, string>) {
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "oauth_instagram_callback",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   if (!hasMeta()) return redirectSettings(req, { error: "meta_not_configured" });
 

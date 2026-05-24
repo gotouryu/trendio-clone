@@ -14,6 +14,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasMeta } from "@/lib/env";
 import { buildInstagramOAuthUrl } from "@/lib/instagram";
 import { requireUser } from "@/lib/supabase/requireUser";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
@@ -21,6 +22,13 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "oauth_instagram_start",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   if (!hasMeta()) {
     return NextResponse.redirect(new URL("/settings?error=meta_not_configured", req.url));

@@ -13,6 +13,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { assertSameOrigin } from "@/lib/csrf";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { hasAnthropic } from "@/lib/env";
 import { runClaude } from "@/lib/claudeClient";
 import { mockCustomers, mockInteractions } from "@/lib/mockData";
@@ -55,6 +56,13 @@ export async function POST(
   if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const routeRateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "customer_ai_analysis",
+    windowSec: 60,
+    maxInWindow: 5,
+  });
+  if (routeRateLimit) return routeRateLimit;
   const { id } = await ctx.params;
   const sb = await createSupabaseServer();
 

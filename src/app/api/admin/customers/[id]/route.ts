@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/supabase/requireAdmin";
 import { assertSameOrigin } from "@/lib/csrf";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,13 @@ export async function PATCH(
 
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "admin_customer_action",
+    windowSec: 60,
+    maxInWindow: 20,
+  });
+  if (rateLimit) return rateLimit;
 
   const { id } = await ctx.params;
   let body: {
@@ -81,6 +89,13 @@ export async function DELETE(
 
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "admin_customer_delete",
+    windowSec: 60,
+    maxInWindow: 5,
+  });
+  if (rateLimit) return rateLimit;
 
   const { id } = await ctx.params;
 

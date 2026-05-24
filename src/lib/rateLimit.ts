@@ -14,6 +14,7 @@
  */
 import { createSupabaseAdmin } from "./supabase/admin";
 import { hasSupabase } from "./env";
+import { NextResponse } from "next/server";
 
 export type RateLimitResult =
   | { allowed: true }
@@ -101,4 +102,34 @@ export async function consumeRateLimit({
     .eq("user_id", userId)
     .eq("kind", kind);
   return { allowed: true };
+}
+
+export async function enforceUserRateLimit({
+  userId,
+  kind,
+  windowSec,
+  maxInWindow,
+}: {
+  userId: string;
+  kind: string;
+  windowSec: number;
+  maxInWindow: number;
+}): Promise<NextResponse | null> {
+  const rate = await consumeRateLimit({
+    userId,
+    kind,
+    windowSec,
+    maxInWindow,
+  });
+  if (rate.allowed) return null;
+  return NextResponse.json(
+    {
+      error: "rate_limited",
+      retryAfterSec: rate.retryAfterSec,
+    },
+    {
+      status: 429,
+      headers: { "Retry-After": String(rate.retryAfterSec) },
+    },
+  );
 }

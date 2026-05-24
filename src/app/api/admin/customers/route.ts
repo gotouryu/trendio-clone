@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/supabase/requireAdmin";
 import { assertSameOrigin } from "@/lib/csrf";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,13 @@ export async function POST(req: NextRequest) {
 
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "admin_customer_create",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   let body: { email: string; companyName: string };
   try {

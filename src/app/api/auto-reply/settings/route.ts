@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { assertSameOrigin } from "@/lib/csrf";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { mockAutoReplySettings } from "@/lib/mockData";
 import type { AutoReplySettings } from "@/lib/types";
 
@@ -65,6 +66,13 @@ export async function PUT(req: NextRequest) {
   if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "auto_reply_settings_update",
+    windowSec: 60,
+    maxInWindow: 20,
+  });
+  if (rateLimit) return rateLimit;
 
   let body: Partial<AutoReplySettings>;
   try {

@@ -10,6 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { assertSameOrigin } from "@/lib/csrf";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,13 @@ export async function POST(req: NextRequest) {
   if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "auto_reply_toggle",
+    windowSec: 60,
+    maxInWindow: 30,
+  });
+  if (rateLimit) return rateLimit;
 
   let body: { enabled?: boolean };
   try {
