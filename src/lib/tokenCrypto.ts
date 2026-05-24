@@ -49,13 +49,12 @@ export function encryptToken(plaintext: string): string {
   if (plaintext.startsWith(ENC_PREFIX)) return plaintext;
   const key = getKey();
   if (!key) {
-    // 鍵未設定 → 平文のまま保存(=本番投入前に必ず env を入れる前提)
-    // console.warn でログに残し、運用者が気付けるようにする
     if (process.env.NODE_ENV === "production") {
-      console.warn(
-        "[tokenCrypto] TOKEN_ENCRYPTION_KEY not set in production — storing plaintext",
+      throw new Error(
+        "TOKEN_ENCRYPTION_KEY is required in production to store SNS tokens",
       );
     }
+    // 開発環境だけ平文を許可する。本番は上で fail-closed にする。
     return plaintext;
   }
   const iv = randomBytes(IV_BYTES);

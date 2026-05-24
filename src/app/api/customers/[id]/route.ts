@@ -129,9 +129,10 @@ export async function PATCH(
     .eq("id", id)
     .eq("user_id", auth.userId)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Customer update failed" }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   return NextResponse.json({ customer: rowToCustomer(data), mock: false });
 }
 
