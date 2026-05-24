@@ -501,8 +501,8 @@ export async function GET() {
   try {
     const usage = await getMonthlyUsage(auth.userId);
     return NextResponse.json({ usage });
-  } catch (err) {
-    console.error("[ai-content] usage lookup failed:", err);
+  } catch {
+    console.error("[ai-content] usage lookup failed");
     return NextResponse.json(
       { error: "AI生成の利用回数を確認できませんでした" },
       { status: 500 },
