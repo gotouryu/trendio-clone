@@ -47,6 +47,10 @@ export async function PATCH(
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const admin = createSupabaseAdmin();
+  const target = await getTargetProfileRole(admin, id);
+  if (!target.ok) {
+    return target.response;
+  }
 
   if (body.action === "suspend" || body.action === "resume") {
     // Phase 3 Wave-B 修正:admin の self-suspend 防止
@@ -56,36 +60,54 @@ export async function PATCH(
         { status: 403 },
       );
     }
+    if (target.role === "admin") {
+      return NextResponse.json(
+        { error: "Cannot change an admin user" },
+        { status: 403 },
+      );
+    }
     const status = body.action === "suspend" ? "suspended" : "active";
-    const { error } = await admin
-      .from("profiles")
-      .update({ status })
-      .eq("id", id);
-    if (error)
-      return NextResponse.json({ error: "customer_status_update_failed" }, { status: 500 });
-    await writeAdminAuditLog({
+    const auditOk = await writeAdminAuditLog({
       actorUserId: auth.userId,
       action: `admin_customer_${body.action}`,
       targetUserId: id,
       payload: { status },
       req,
     });
+    if (!auditOk) {
+      return NextResponse.json({ error: "audit_log_failed" }, { status: 500 });
+    }
+    const { error } = await admin
+      .from("profiles")
+      .update({ status })
+      .eq("id", id);
+    if (error)
+      return NextResponse.json({ error: "customer_status_update_failed" }, { status: 500 });
     return NextResponse.json({ ok: true, status });
   }
 
   if (body.action === "reset-password") {
+    if (target.role === "admin") {
+      return NextResponse.json(
+        { error: "Cannot reset an admin user" },
+        { status: 403 },
+      );
+    }
+    const auditOk = await writeAdminAuditLog({
+      actorUserId: auth.userId,
+      action: "admin_customer_reset_password",
+      targetUserId: id,
+      req,
+    });
+    if (!auditOk) {
+      return NextResponse.json({ error: "audit_log_failed" }, { status: 500 });
+    }
     const newPassword = generatePassword(12);
     const { error } = await admin.auth.admin.updateUserById(id, {
       password: newPassword,
     });
     if (error)
       return NextResponse.json({ error: "password_reset_failed" }, { status: 500 });
-    await writeAdminAuditLog({
-      actorUserId: auth.userId,
-      action: "admin_customer_reset_password",
-      targetUserId: id,
-      req,
-    });
     // Phase 3 Wave-B:Cache-Control: no-store でパスワードを CDN/proxy にキャッシュさせない
     return noStoreJson({ ok: true, newPassword });
   }
@@ -122,19 +144,8 @@ export async function DELETE(
   }
 
   const admin = createSupabaseAdmin();
-
-  // 削除対象の role を確認(=admin は削除不可)
-  const { data: target } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", id)
-    .single();
-  if (!target) {
-    return NextResponse.json(
-      { error: "Target user not found" },
-      { status: 404 },
-    );
-  }
+  const target = await getTargetProfileRole(admin, id);
+  if (!target.ok) return target.response;
   if (target.role === "admin") {
     return NextResponse.json(
       { error: "Cannot delete an admin user" },
@@ -142,16 +153,37 @@ export async function DELETE(
     );
   }
 
-  const { error } = await admin.auth.admin.deleteUser(id);
-  if (error)
-    return NextResponse.json({ error: "customer_delete_failed" }, { status: 500 });
-  await writeAdminAuditLog({
+  const auditOk = await writeAdminAuditLog({
     actorUserId: auth.userId,
     action: "admin_customer_delete",
     targetUserId: id,
     req,
   });
+  if (!auditOk) {
+    return NextResponse.json({ error: "audit_log_failed" }, { status: 500 });
+  }
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error)
+    return NextResponse.json({ error: "customer_delete_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
+}
+
+async function getTargetProfileRole(admin: ReturnType<typeof createSupabaseAdmin>, id: string) {
+  const { data, error } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", id)
+    .single();
+  if (error || !data) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "Target user not found" },
+        { status: 404 },
+      ),
+    };
+  }
+  return { ok: true as const, role: data.role as string };
 }
 
 function generatePassword(len: number): string {

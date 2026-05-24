@@ -13,10 +13,10 @@ export async function writeAdminAuditLog({
   targetUserId?: string;
   payload?: Record<string, unknown>;
   req: NextRequest;
-}) {
+}): Promise<boolean> {
   try {
     const admin = createSupabaseAdmin();
-    await admin.from("audit_log").insert({
+    const { error } = await admin.from("audit_log").insert({
       actor_user_id: actorUserId,
       action,
       target_user_id: targetUserId ?? null,
@@ -26,7 +26,13 @@ export async function writeAdminAuditLog({
         req.headers.get("x-real-ip") ??
         null,
     });
+    if (error) {
+      console.warn("[admin audit] write failed");
+      return false;
+    }
+    return true;
   } catch {
     console.warn("[admin audit] write failed");
+    return false;
   }
 }

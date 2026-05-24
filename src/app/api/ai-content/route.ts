@@ -628,8 +628,8 @@ export async function POST(req: NextRequest) {
         usage,
       });
     }
-    const usageBefore = await getMonthlyUsage(auth.userId);
-    if (usageBefore.remaining <= 0) {
+    const quota = await consumeMonthlyUsage(auth.userId);
+    if (!quota.allowed) {
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
@@ -638,7 +638,7 @@ export async function POST(req: NextRequest) {
         mock: false,
         errorCode: "monthly_quota_exceeded",
       });
-      return quotaExceededResponse(usageBefore);
+      return quotaExceededResponse(quota.usage);
     }
     const userPrompt = `<user_context>
 ${briefBlock(brief)}
@@ -661,18 +661,6 @@ ${briefBlock(brief)}
       if (plans.length < 5) {
         throw new Error("Gemini returned too few valid plans");
       }
-      const quota = await consumeMonthlyUsage(auth.userId);
-      if (!quota.allowed) {
-        await logAiContentGeneration({
-          userId: auth.userId,
-          mode: "plans",
-          status: "blocked_quota",
-          counted: false,
-          mock: false,
-          errorCode: "monthly_quota_exceeded",
-        });
-        return quotaExceededResponse(quota.usage);
-      }
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
@@ -686,15 +674,14 @@ ${briefBlock(brief)}
         userId: auth.userId,
         mode: "plans",
         status: "fallback",
-        counted: false,
+        counted: true,
         mock: true,
         errorCode: "gemini_response_parse_failed",
       });
-      const usage = await getMonthlyUsage(auth.userId);
       return NextResponse.json({
         plans: mockPlanIdeas.map((p) => ({ ...p, id: `fallback-${Date.now()}-${p.id}` })),
         mock: true,
-        usage,
+        usage: quota.usage,
         warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
       });
     }
@@ -726,8 +713,8 @@ ${briefBlock(brief)}
     });
   }
 
-  const usageBefore = await getMonthlyUsage(auth.userId);
-  if (usageBefore.remaining <= 0) {
+  const quota = await consumeMonthlyUsage(auth.userId);
+  if (!quota.allowed) {
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
@@ -736,7 +723,7 @@ ${briefBlock(brief)}
       mock: false,
       errorCode: "monthly_quota_exceeded",
     });
-    return quotaExceededResponse(usageBefore);
+    return quotaExceededResponse(quota.usage);
   }
 
   const userPrompt = `<selected_plan>
@@ -771,18 +758,6 @@ ${briefBlock(brief)}
     if (!script) {
       throw new Error("Gemini returned no valid scenes");
     }
-    const quota = await consumeMonthlyUsage(auth.userId);
-    if (!quota.allowed) {
-      await logAiContentGeneration({
-        userId: auth.userId,
-        mode: "script",
-        status: "blocked_quota",
-        counted: false,
-        mock: false,
-        errorCode: "monthly_quota_exceeded",
-      });
-      return quotaExceededResponse(quota.usage);
-    }
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
@@ -796,15 +771,14 @@ ${briefBlock(brief)}
       userId: auth.userId,
       mode: "script",
       status: "fallback",
-      counted: false,
+      counted: true,
       mock: true,
       errorCode: "gemini_response_parse_failed",
     });
-    const usage = await getMonthlyUsage(auth.userId);
     return NextResponse.json({
       script: { ...mockGeneratedScript, id: `fallback-${Date.now()}`, planTitle: plan.title },
       mock: true,
-      usage,
+      usage: quota.usage,
       warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
     });
   }

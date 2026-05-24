@@ -130,6 +130,16 @@ export async function POST(req: NextRequest) {
   // Generate a random initial password (12 chars)
   const password = generatePassword(12);
 
+  const auditOk = await writeAdminAuditLog({
+    actorUserId: auth.userId,
+    action: "admin_customer_create",
+    payload: { email, companyName },
+    req,
+  });
+  if (!auditOk) {
+    return NextResponse.json({ error: "audit_log_failed" }, { status: 500 });
+  }
+
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -138,14 +148,6 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) return NextResponse.json({ error: "customer_create_failed" }, { status: 400 });
-
-  await writeAdminAuditLog({
-    actorUserId: auth.userId,
-    action: "admin_customer_create",
-    targetUserId: data.user.id,
-    payload: { email: data.user.email, companyName },
-    req,
-  });
 
   // Phase 3 Wave-B:Cache-Control: no-store でパスワードを CDN/proxy にキャッシュさせない
   return noStoreJson({

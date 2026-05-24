@@ -61,6 +61,13 @@ export async function PATCH(
   if (csrf) return csrf;
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "customer_detail_update",
+    windowSec: 60,
+    maxInWindow: 60,
+  });
+  if (rateLimit) return rateLimit;
   const { id } = await ctx.params;
   let body: Partial<Customer>;
   try {
