@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { env, hasAnthropic } from "./env";
+import { AI_API_TIMEOUT_MS, withTimeout } from "./timeout";
 
 let cached: Anthropic | null = null;
 
@@ -27,18 +28,22 @@ export async function runClaude(opts: {
       "Anthropic API key not configured. Set ANTHROPIC_API_KEY in .env.local",
     );
   }
-  const resp = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: opts.maxTokens ?? 2048,
-    system: [
-      {
-        type: "text",
-        text: opts.system,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [{ role: "user", content: opts.user }],
-  });
+  const resp = await withTimeout(
+    client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: opts.maxTokens ?? 2048,
+      system: [
+        {
+          type: "text",
+          text: opts.system,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [{ role: "user", content: opts.user }],
+    }),
+    AI_API_TIMEOUT_MS,
+    "Claude generation",
+  );
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)

@@ -1,4 +1,5 @@
 import { env, hasMeta } from "./env";
+import { timeoutSignal } from "./timeout";
 
 const GRAPH_BASE = "https://graph.facebook.com";
 
@@ -50,7 +51,7 @@ export async function exchangeCodeForToken(code: string): Promise<string> {
   url.searchParams.set("client_secret", env.metaAppSecret!);
   url.searchParams.set("redirect_uri", env.metaOauthRedirect!);
   url.searchParams.set("code", code);
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: timeoutSignal() });
   if (!res.ok) throw new Error(`Token exchange failed: ${res.status}`);
   const data = (await res.json()) as { access_token: string };
   return data.access_token;
@@ -66,7 +67,7 @@ export async function getInstagramBusinessAccountId(
     `${GRAPH_BASE}/${env.metaGraphApiVersion}/me/accounts`,
   );
   pagesUrl.searchParams.set("access_token", userAccessToken);
-  const pagesRes = await fetch(pagesUrl);
+  const pagesRes = await fetch(pagesUrl, { signal: timeoutSignal() });
   if (!pagesRes.ok) return null;
   const pagesData = (await pagesRes.json()) as {
     data: { id: string; access_token: string }[];
@@ -77,7 +78,7 @@ export async function getInstagramBusinessAccountId(
     );
     igUrl.searchParams.set("fields", "instagram_business_account");
     igUrl.searchParams.set("access_token", page.access_token);
-    const igRes = await fetch(igUrl);
+    const igRes = await fetch(igUrl, { signal: timeoutSignal() });
     if (!igRes.ok) continue;
     const igData = (await igRes.json()) as {
       instagram_business_account?: { id: string };
@@ -104,7 +105,7 @@ export async function fetchInsights(
   if (since) url.searchParams.set("since", since);
   if (until) url.searchParams.set("until", until);
   url.searchParams.set("access_token", accessToken);
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: timeoutSignal() });
   if (!res.ok) throw new Error(`Instagram insights failed: ${res.status}`);
   const data = (await res.json()) as {
     data: { name: string; values: { value: number }[] }[];
@@ -139,7 +140,7 @@ export async function fetchAudienceDemographics(
   );
   url.searchParams.set("period", "lifetime");
   url.searchParams.set("access_token", accessToken);
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: timeoutSignal() });
   if (!res.ok) throw new Error(`Demographics failed: ${res.status}`);
   // Meta returns { data: [{ name, values: [{ value: { 'M.18-24': 10, ... } }] }] }
   type DemographicsResponse = {

@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
-  let accessToken = searchParams.get("accessToken");
+  const allowOverride = process.env.NODE_ENV !== "production";
+  let accessToken = allowOverride ? searchParams.get("accessToken") : null;
 
   if (!accessToken) {
     const sb = await createSupabaseServer();

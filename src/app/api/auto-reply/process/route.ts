@@ -22,6 +22,9 @@ import type { AutoReplySettings, FaqPattern } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type Body = {
   commentId: string;
   commentText: string;
@@ -56,6 +59,19 @@ export async function POST(req: NextRequest) {
       { error: "commentId, commentText, customerHandle required" },
       { status: 400 },
     );
+  }
+  if (
+    typeof body.commentId !== "string" ||
+    typeof body.commentText !== "string" ||
+    typeof body.customerHandle !== "string" ||
+    body.commentId.length > 120 ||
+    body.commentText.length > 2000 ||
+    body.customerHandle.length > 100
+  ) {
+    return NextResponse.json({ error: "invalid comment payload" }, { status: 400 });
+  }
+  if (body.customerId && !UUID_RE.test(body.customerId)) {
+    return NextResponse.json({ error: "invalid customerId" }, { status: 400 });
   }
 
   const sb = await createSupabaseServer();
@@ -148,9 +164,19 @@ export async function POST(req: NextRequest) {
           reason: "duplicate_comment_id_race",
         });
       }
+      if (
+        result.status === "skipped" &&
+        /violates check constraint|invalid input value/i.test(logErr.message)
+      ) {
+        return NextResponse.json({
+          ...result,
+          logPersisted: false,
+          warning: "AUTO_REPLY_SKIPPED_LOG_FALLBACK",
+        });
+      }
       return NextResponse.json(
-        { error: "log insert failed" },
-        { status: 500 },
+        { ...result, logPersisted: false, warning: "AUTO_REPLY_LOG_FALLBACK" },
+        { status: 200 },
       );
     }
 

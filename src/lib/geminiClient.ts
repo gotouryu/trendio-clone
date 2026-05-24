@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { env, hasGemini } from "./env";
+import { AI_API_TIMEOUT_MS, withTimeout } from "./timeout";
 
 let cached: GoogleGenAI | null = null;
 
@@ -26,17 +27,21 @@ export async function runGemini(opts: {
       "Gemini API key not configured. Set GEMINI_API_KEY in .env.local",
     );
   }
-  const resp = await client.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: opts.user,
-    config: {
-      systemInstruction: opts.system,
-      maxOutputTokens: opts.maxTokens ?? 2048,
-      ...(opts.json ? { responseMimeType: "application/json" } : {}),
-      ...(opts.responseJsonSchema
-        ? { responseJsonSchema: opts.responseJsonSchema }
-        : {}),
-    },
-  });
+  const resp = await withTimeout(
+    client.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: opts.user,
+      config: {
+        systemInstruction: opts.system,
+        maxOutputTokens: opts.maxTokens ?? 2048,
+        ...(opts.json ? { responseMimeType: "application/json" } : {}),
+        ...(opts.responseJsonSchema
+          ? { responseJsonSchema: opts.responseJsonSchema }
+          : {}),
+      },
+    }),
+    AI_API_TIMEOUT_MS,
+    "Gemini generation",
+  );
   return resp.text ?? "";
 }

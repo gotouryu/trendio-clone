@@ -46,9 +46,9 @@ export function hasGemini() {
 }
 
 export function hasMeta() {
-  return !!(env.metaAppId && env.metaAppSecret);
+  return !!(env.metaAppId && env.metaAppSecret && env.metaOauthRedirect);
 }
 
 export function hasTikTok() {
-  return !!(env.tiktokClientKey && env.tiktokClientSecret);
+  return !!(env.tiktokClientKey && env.tiktokClientSecret && env.tiktokOauthRedirect);
 }

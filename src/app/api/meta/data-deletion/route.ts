@@ -82,7 +82,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Meta は application/x-www-form-urlencoded で `signed_request=<...>` を POST
-  const form = await req.formData();
+  let form: FormData;
+  try {
+    form = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "invalid form data" }, { status: 400 });
+  }
   const signedRequest = form.get("signed_request");
   if (typeof signedRequest !== "string") {
     return NextResponse.json(

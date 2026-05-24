@@ -216,6 +216,26 @@ export async function POST(req: NextRequest) {
       .single();
     data = res.data as CustomerRow | null;
     error = res.error;
+
+    if (error && isDuplicateCustomerError(error)) {
+      const retry = await sb
+        .from("customers")
+        .update({
+          display_name: body.displayName ?? undefined,
+          profile_image_url: body.profileImageUrl ?? undefined,
+          last_contact_at: now,
+          notes: body.notes ?? undefined,
+          age_range: body.ageRange ?? undefined,
+          gender: body.gender ?? undefined,
+          region: body.region ?? undefined,
+        })
+        .eq("user_id", auth.userId)
+        .eq("instagram_handle", body.instagramHandle)
+        .select()
+        .single();
+      data = retry.data as CustomerRow | null;
+      error = retry.error;
+    }
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -258,6 +278,13 @@ function rowToCustomer(row: CustomerRow): Customer {
     gender: row.gender ?? undefined,
     region: row.region ?? undefined,
   };
+}
+
+function isDuplicateCustomerError(error: { message?: string; code?: string }) {
+  return (
+    error.code === "23505" ||
+    /duplicate key|unique constraint/i.test(error.message ?? "")
+  );
 }
 
 function parsePagination(

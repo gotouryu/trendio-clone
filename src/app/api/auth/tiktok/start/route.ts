@@ -2,7 +2,7 @@
  * GET /api/auth/tiktok/start
  * TikTok OAuth フロー開始(=Instagram と同型)。
  */
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { hasTikTok } from "@/lib/env";
 import { buildTikTokOAuthUrl } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
@@ -10,18 +10,12 @@ import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
   if (!hasTikTok()) {
-    return NextResponse.json(
-      {
-        error:
-          "TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET / TIKTOK_OAUTH_REDIRECT が未設定です",
-      },
-      { status: 503 },
-    );
+    return NextResponse.redirect(new URL("/settings?error=tiktok_not_configured", req.url));
   }
 
   const state = randomBytes(24).toString("hex");

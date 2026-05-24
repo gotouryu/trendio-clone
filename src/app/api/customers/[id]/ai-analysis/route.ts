@@ -190,14 +190,7 @@ export async function POST(
   let analysis: CustomerAIAnalysis;
   if (!hasAnthropic()) {
     // フォールバック(=API未設定時)
-    analysis = {
-      customerId: id,
-      generatedAt: new Date().toISOString(),
-      interests: `過去 ${interactions.length} 件の接点から、商品問い合わせと営業時間確認が中心。継続的に投稿に反応しており関心が高い。`,
-      cautions:
-        "クレーム履歴は確認されていないが、丁寧で正確な情報提供を心がける。返信遅延は満足度低下に直結する可能性あり。",
-      summary: `@${customer.instagram_handle} は接点頻度の高い既存顧客層。FAQ 自動応答 + 担当者の個別フォローを組み合わせるのが効果的。`,
-    };
+    analysis = fallbackAnalysis(id, customer.instagram_handle, interactions);
   } else {
     const historyText = interactions
       .map(
@@ -229,23 +222,21 @@ ${historyText}
         cautions: string;
         summary: string;
       };
+      const interests = sanitizeAnalysisField(parsed.interests, 220);
+      const cautions = sanitizeAnalysisField(parsed.cautions, 220);
+      const summary = sanitizeAnalysisField(parsed.summary, 300);
+      if (!interests || !cautions || !summary) {
+        throw new Error("invalid AI analysis shape");
+      }
       analysis = {
         customerId: id,
         generatedAt: new Date().toISOString(),
-        interests: parsed.interests,
-        cautions: parsed.cautions,
-        summary: parsed.summary,
+        interests,
+        cautions,
+        summary,
       };
-    } catch (err) {
-      return NextResponse.json(
-        {
-          error:
-            err instanceof Error
-              ? `AI分析に失敗:${err.message}`
-              : "AI generation failed",
-        },
-        { status: 502 },
-      );
+    } catch {
+      analysis = fallbackAnalysis(id, customer.instagram_handle, interactions);
     }
   }
 
@@ -262,4 +253,30 @@ ${historyText}
   }
 
   return NextResponse.json({ analysis, cached: false });
+}
+
+function sanitizeAnalysisField(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/\s+/g, " ").trim().slice(0, max);
+  return text.length >= 5 ? text : null;
+}
+
+function fallbackAnalysis(
+  customerId: string,
+  handle: string,
+  interactions: CustomerInteraction[],
+): CustomerAIAnalysis {
+  const hasComplaint = interactions.some((i) => i.category === "complaint");
+  const hasInquiry = interactions.some((i) => i.category === "product_inquiry");
+  return {
+    customerId,
+    generatedAt: new Date().toISOString(),
+    interests: hasInquiry
+      ? `過去 ${interactions.length} 件の接点では商品・サービスへの問い合わせが目立ち、購入前の情報確認ニーズが高い。`
+      : `過去 ${interactions.length} 件の接点から、投稿への反応と基本情報の確認が中心。継続接点の余地がある。`,
+    cautions: hasComplaint
+      ? "クレームに近い接点があるため、断定や自動返信だけで完結せず、担当者確認を挟む。"
+      : "強い不満は確認されていないが、返信遅延を避け、質問には具体的に案内する。",
+    summary: `@${handle} は接点履歴に基づく個別フォロー対象。FAQ自動応答と担当者確認を組み合わせるのが安全。`,
+  };
 }

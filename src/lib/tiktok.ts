@@ -1,4 +1,5 @@
 import { env, hasTikTok } from "./env";
+import { timeoutSignal } from "./timeout";
 
 const OAUTH_BASE = "https://www.tiktok.com/v2/auth/authorize/";
 const TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
@@ -53,6 +54,7 @@ export async function exchangeTikTokCode(code: string): Promise<{
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    signal: timeoutSignal(),
   });
   if (!res.ok) throw new Error(`TikTok token exchange failed: ${res.status}`);
   return (await res.json()) as {
@@ -80,6 +82,7 @@ export async function fetchTikTokUserProfile(
   );
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: timeoutSignal(),
   });
   if (!res.ok) return null;
   type R = {
@@ -114,6 +117,7 @@ export async function fetchTikTokUserStats(
   );
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: timeoutSignal(),
   });
   if (!res.ok) throw new Error(`TikTok stats failed: ${res.status}`);
   type StatsResponse = {
@@ -160,6 +164,7 @@ export async function fetchTikTokVideos(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: timeoutSignal(),
   });
   if (!res.ok) throw new Error(`TikTok videos failed: ${res.status}`);
   type VideoListResponse = {

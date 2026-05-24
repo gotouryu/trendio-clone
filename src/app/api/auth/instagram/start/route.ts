@@ -10,7 +10,7 @@
  * このルート経由でログイン → callback で sns_accounts upsert → settings に戻る。
  * 未設定なら 503 を返してフォールバック。
  */
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { hasMeta } from "@/lib/env";
 import { buildInstagramOAuthUrl } from "@/lib/instagram";
 import { requireUser } from "@/lib/supabase/requireUser";
@@ -18,17 +18,12 @@ import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
   if (!hasMeta()) {
-    return NextResponse.json(
-      {
-        error: "META_APP_ID / META_APP_SECRET / META_OAUTH_REDIRECT が未設定です",
-      },
-      { status: 503 },
-    );
+    return NextResponse.redirect(new URL("/settings?error=meta_not_configured", req.url));
   }
 
   const state = randomBytes(24).toString("hex");

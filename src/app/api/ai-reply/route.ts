@@ -42,6 +42,24 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+  if (!body.commentText || typeof body.commentText !== "string") {
+    return NextResponse.json(
+      { error: "commentText is required" },
+      { status: 400 },
+    );
+  }
+
+  // 入力長制限(=Claude トークン爆発防止)
+  body.commentText = body.commentText.slice(0, 2000);
+  if (body.customerHandle) body.customerHandle = body.customerHandle.slice(0, 100);
+  if (body.customerHistory) body.customerHistory = body.customerHistory.slice(0, 4000);
+
   // H3 対応:AI 返信案生成のレートリミット(=1分間 5 回)
   const rl = await consumeRateLimit({
     userId: auth.userId,
@@ -60,24 +78,6 @@ export async function POST(req: NextRequest) {
       },
     );
   }
-
-  let body: Body;
-  try {
-    body = (await req.json()) as Body;
-  } catch {
-    return NextResponse.json({ error: "invalid json" }, { status: 400 });
-  }
-  if (!body.commentText || typeof body.commentText !== "string") {
-    return NextResponse.json(
-      { error: "commentText is required" },
-      { status: 400 },
-    );
-  }
-
-  // 入力長制限(=Claude トークン爆発防止)
-  body.commentText = body.commentText.slice(0, 2000);
-  if (body.customerHandle) body.customerHandle = body.customerHandle.slice(0, 100);
-  if (body.customerHistory) body.customerHistory = body.customerHistory.slice(0, 4000);
 
   // フォールバック:Anthropic未設定時は簡易テンプレ
   if (!hasAnthropic()) {
@@ -104,7 +104,15 @@ export async function POST(req: NextRequest) {
       user: userPrompt,
       maxTokens: 512,
     });
-    const reply = raw.trim();
+    const reply = sanitizeReply(raw);
+    if (!reply) {
+      return NextResponse.json({
+        reply: fallbackReply(body.commentText),
+        model: "fallback-template",
+        generated: false,
+        warning: "AI_EMPTY_RESPONSE_FALLBACK",
+      });
+    }
     return NextResponse.json({
       reply,
       model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-6",
@@ -123,6 +131,19 @@ export async function POST(req: NextRequest) {
       error: "ai_generation_failed",
     });
   }
+}
+
+function sanitizeReply(raw: string): string | null {
+  const reply = raw
+    .trim()
+    .replace(/^以下の返信文を提案します[:：]?\s*/i, "")
+    .replace(/^返信案[:：]?\s*/i, "")
+    .replace(/^Here(?:'|’)s.*?:\s*/i, "")
+    .trim();
+  if (!reply || reply.length > 500) return null;
+  if (/(\n\s*[-*]\s|\n\s*\d+[.)])/.test(reply)) return null;
+  if (/契約成立|必ず返金|絶対に治|法的に保証|購入を確定/.test(reply)) return null;
+  return reply;
 }
 
 /**

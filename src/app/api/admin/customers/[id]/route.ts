@@ -27,9 +27,16 @@ export async function PATCH(
   if (!auth.ok) return auth.response;
 
   const { id } = await ctx.params;
-  const body = (await req.json()) as {
+  let body: {
     action: "suspend" | "resume" | "reset-password";
   };
+  try {
+    body = (await req.json()) as {
+      action: "suspend" | "resume" | "reset-password";
+    };
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
   const admin = createSupabaseAdmin();
 
   if (body.action === "suspend" || body.action === "resume") {
