@@ -26,6 +26,28 @@ type UsageInfo = {
 };
 
 const DURATION_OPTIONS = [15, 30, 45, 60, 90];
+const INDUSTRY_OPTIONS = [
+  "美容室・サロン",
+  "エステ・美容医療・健康系",
+  "整体・整骨・鍼灸",
+  "飲食",
+  "士業・専門サービス",
+  "不動産・住宅",
+  "教育・スクール",
+  "EC・物販",
+  "BtoBサービス",
+  "その他",
+];
+const BUSINESS_TYPE_OPTIONS = [
+  "店舗型",
+  "予約制",
+  "訪問型",
+  "オンライン型",
+  "EC・通販",
+  "サブスク",
+  "法人向け",
+  "個人向け",
+];
 const GOAL_OPTIONS = [
   "認知を広げる",
   "保存してもらう",
@@ -198,7 +220,11 @@ export default function AIContentPage() {
     }
   }
 
-  const missingRequired = !brief.target.trim() || !brief.theme.trim();
+  const missingRequired =
+    !brief.industry.trim() ||
+    !brief.businessType.trim() ||
+    !brief.target.trim() ||
+    !brief.theme.trim();
   const quotaUnavailable = !usage || !!usageError;
   const quotaExceeded = !!usage && usage.remaining <= 0;
   const generationDisabled = quotaUnavailable || quotaExceeded;
@@ -409,11 +435,44 @@ export default function AIContentPage() {
             </div>
           )}
 
-          {/* ========== 段階0:入力フォーム(10項目) ========== */}
+          {/* ========== 段階0:入力フォーム ========== */}
           {step === "input" && (
             <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-6 space-y-5">
               <div className="rounded-lg border border-emerald-100 dark:border-emerald-900 bg-emerald-50/70 dark:bg-emerald-900/20 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
-                必須項目はターゲットと投稿テーマです。未入力では企画案を生成できません。
+                必須項目は業種、業態、ターゲット、投稿テーマです。未入力では企画案を生成できません。
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field label="業種" hint="企画の勝ち筋と表現リスクを調整します" required>
+                  <select
+                    value={brief.industry}
+                    onChange={(e) => set("industry", e.target.value)}
+                    className={inputCls}
+                    required
+                  >
+                    <option value="">選択してください</option>
+                    {INDUSTRY_OPTIONS.map((industry) => (
+                      <option key={industry} value={industry}>
+                        {industry}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="業態" hint="店舗型、オンライン、法人向けなど" required>
+                  <select
+                    value={brief.businessType}
+                    onChange={(e) => set("businessType", e.target.value)}
+                    className={inputCls}
+                    required
+                  >
+                    <option value="">選択してください</option>
+                    {BUSINESS_TYPE_OPTIONS.map((businessType) => (
+                      <option key={businessType} value={businessType}>
+                        {businessType}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
               </div>
 
               <Field
@@ -439,6 +498,19 @@ export default function AIContentPage() {
                   placeholder="例:新発売の冷凍弁当の紹介"
                   className={inputCls}
                   required
+                />
+              </Field>
+
+              <Field
+                label="参考トレンド・流行の型"
+                hint="流行っている投稿、競合で見た型、使いたい構成など"
+              >
+                <textarea
+                  value={brief.trendReference}
+                  onChange={(e) => set("trendReference", e.target.value)}
+                  placeholder="例:冒頭で失敗例を見せる、3選形式、コメントしたくなる二択、店舗の裏側密着"
+                  rows={3}
+                  className={inputCls}
                 />
               </Field>
 
@@ -665,13 +737,21 @@ export default function AIContentPage() {
                   key={p.id}
                   className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5"
                 >
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    {p.title}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                      {p.angle}
+                    </span>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {p.title}
+                    </h3>
+                  </div>
                   <div className="space-y-2 text-sm mb-4">
                     <Row label="狙い" value={p.concept} />
                     <Row label="冒頭フック" value={p.hook} />
                     <Row label="構成" value={p.outline} pre />
+                    <Row label="トレンド適合" value={p.trendFit} />
+                    <Row label="反応が起きる理由" value={p.buzzReason} />
+                    <Row label="向いている目的" value={p.recommendedFor} />
                   </div>
                   <button
                     onClick={() => generateScript(p)}

@@ -505,6 +505,7 @@ const SYSTEM_SCRIPT = `<role>
 <task>
 選択済み企画を、指定尺ぴったりのシーン別台本にしてください。
 撮影担当が追加説明なしで絵を想像でき、編集担当がテロップと音の役割を判断できる具体性を優先してください。
+選択企画の angle / trendFit / buzzReason / recommendedFor を、冒頭フック、画変わり、CTA直前の納得づくりに反映してください。
 </task>
 
 <output_fields>
@@ -529,6 +530,7 @@ const SYSTEM_SCRIPT = `<role>
 - captionはスマホで一瞬で読める短さにする
 - narrationとcaptionは同じ文の丸写しにせず、音声と画面文字の役割を分ける
 - CTA直前に、CTAへ進む理由になる価値や納得を置く
+- trend型なら参考投稿型を業種に合わせて翻訳し、buzz型ならコメントや共感の余地、save型なら保存価値、trust型なら不安解消、original型なら意外な切り口を台本内に必ず出す
 </quality_bar>
 
 <scene_design>
@@ -609,9 +611,9 @@ export async function POST(req: NextRequest) {
   const mode = body.mode === "script" ? "script" : "plans";
   const brief = sanitizeBrief(body.brief);
 
-  if (!brief.theme || !brief.target) {
+  if (!brief.industry || !brief.businessType || !brief.theme || !brief.target) {
     return NextResponse.json(
-      { error: "ターゲットと投稿テーマは必須です" },
+      { error: "業種、業態、ターゲット、投稿テーマは必須です" },
       { status: 400 },
     );
   }
@@ -643,19 +645,20 @@ ${briefBlock(brief)}
 </user_context>
 
 <request>
-上記条件に適合する企画案を内部で比較し、ターゲット適合度、訴求の明確さ、企画の差、撮影可能性、CTA接続が高い3案だけ返してください。
+上記条件に適合する企画案を内部で比較し、trend / buzz / save / trust / original の5タイプを1案ずつ返してください。
 入力条件が多い場合は情報を詰め込みすぎず、各案で視聴者に残す主メッセージを1つに絞ってください。
+各案は、選んだ後に別々の台本へ展開できるように、見せ方、撮影素材、フック、CTAまで差を作ってください。
 </request>`;
     try {
       const raw = await runGemini({
         system: SYSTEM_PLANS,
         user: userPrompt,
-        maxTokens: 2048,
+        maxTokens: 3072,
         json: true,
         responseJsonSchema: PLAN_SCHEMA,
       });
       const plans = normalizePlans(JSON.parse(stripFence(raw)));
-      if (plans.length < 2) {
+      if (plans.length < 5) {
         throw new Error("Gemini returned too few valid plans");
       }
       const quota = await consumeMonthlyUsage(auth.userId);
@@ -737,10 +740,14 @@ ${briefBlock(brief)}
   }
 
   const userPrompt = `<selected_plan>
+<angle>${plan.angle}</angle>
 <title>${plan.title}</title>
 <concept>${plan.concept}</concept>
 <hook>${plan.hook}</hook>
 <outline>${plan.outline}</outline>
+<trend_fit>${plan.trendFit}</trend_fit>
+<buzz_reason>${plan.buzzReason}</buzz_reason>
+<recommended_for>${plan.recommendedFor}</recommended_for>
 </selected_plan>
 
 <user_context>
