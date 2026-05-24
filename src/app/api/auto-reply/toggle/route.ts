@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
     .select("enabled")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json(
+      { error: "auto_reply_toggle_failed" },
+      { status: 500 },
+    );
   return NextResponse.json({ enabled: data.enabled, mock: false });
 }

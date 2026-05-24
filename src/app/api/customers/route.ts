@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
   if (tag) query = query.contains("tags", [tag]);
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "customers_fetch_failed" }, { status: 500 });
 
   const customers: Customer[] = (data ?? []).map(rowToCustomer);
   return NextResponse.json({
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "customer_upsert_failed" }, { status: 500 });
   if (!data) return NextResponse.json({ error: "no row" }, { status: 500 });
   return NextResponse.json({ customer: rowToCustomer(data), mock: false });
 }

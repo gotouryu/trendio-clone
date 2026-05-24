@@ -27,7 +27,7 @@ export async function GET() {
     .eq("user_id", auth.userId);
 
   if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "sns_accounts_fetch_failed" }, { status: 500 });
 
   return NextResponse.json({ accounts: data ?? [] });
 }
@@ -63,7 +63,7 @@ export async function DELETE(req: NextRequest) {
     .eq("platform", platform);
 
   if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "sns_disconnect_failed" }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

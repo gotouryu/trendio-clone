@@ -35,7 +35,7 @@ as $$
 $$;
 
 revoke all on function public.is_admin(uuid) from public;
-grant execute on function public.is_admin(uuid) to authenticated, anon, service_role;
+grant execute on function public.is_admin(uuid) to authenticated, service_role;
 
 -- Customer can read/update only their own row; admin can read all
 drop policy if exists "profiles: own row or admin read" on public.profiles;

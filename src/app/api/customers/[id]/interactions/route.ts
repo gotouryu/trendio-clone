@@ -9,6 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { mockInteractions } from "@/lib/mockData";
 import type { CustomerInteraction, InquiryCategory } from "@/lib/types";
 
@@ -23,10 +24,17 @@ export async function GET(
 ) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "customer_interactions_list",
+    windowSec: 60,
+    maxInWindow: 60,
+  });
+  if (rateLimit) return rateLimit;
   const { id } = await ctx.params;
 
   const { searchParams } = new URL(req.url);
-  const pagination = parsePagination(searchParams, 100, 500);
+  const pagination = parsePagination(searchParams, 100, 200);
   if (!pagination.ok) return pagination.response;
   const { limit, offset } = pagination;
 
@@ -54,7 +62,7 @@ export async function GET(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "interactions_fetch_failed" }, { status: 500 });
 
   const interactions: CustomerInteraction[] = (data ?? []).map((row) => ({
     id: row.id,
@@ -68,18 +76,32 @@ export async function GET(
     status: row.status ?? undefined,
   }));
 
-  // 問い合わせカテゴリ集計(=共P-01「顧客接点の構造化」要件)
-  const { data: categoryRows } = await sb
-    .from("customer_interactions")
-    .select("category")
-    .eq("customer_id", id)
-    .eq("user_id", auth.userId);
-
-  const byCategoryCount = countByCategory(
-    (categoryRows ?? []).map((r) => ({
-      category: r.category as InquiryCategory | undefined,
-    })),
+  const categories: InquiryCategory[] = [
+    "product_inquiry",
+    "business_hours",
+    "complaint",
+    "positive",
+    "other",
+  ];
+  const categoryCounts = await Promise.all(
+    categories.map(async (category) => {
+      let query = sb
+        .from("customer_interactions")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", id)
+        .eq("user_id", auth.userId);
+      query =
+        category === "other"
+          ? query.or("category.eq.other,category.is.null")
+          : query.eq("category", category);
+      const { count } = await query;
+      return [category, count ?? 0] as const;
+    }),
   );
+  const byCategoryCount = Object.fromEntries(categoryCounts) as Record<
+    InquiryCategory,
+    number
+  >;
 
   return NextResponse.json({
     interactions,

@@ -118,12 +118,10 @@ export async function POST(req: NextRequest) {
       model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-6",
       generated: true,
     });
-  } catch (err) {
+  } catch {
     // Phase 3 Wave-B 修正:Anthropic SDK のエラー文が API キー prefix 等の
     // 内部情報を含むので、固定文字列のみ返す。詳細はサーバーログのみ。
-    if (err instanceof Error) {
-      console.error("[ai-reply] generation failed:", err.message);
-    }
+    console.error("[ai-reply] generation failed");
     return NextResponse.json({
       reply: fallbackReply(body.commentText),
       model: "fallback-template",

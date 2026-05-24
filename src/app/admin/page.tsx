@@ -14,6 +14,8 @@ import {
   Activity,
   Clock,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getSession, isAdmin, logout } from "@/lib/authClient";
 import { useToast } from "@/components/providers/ToasterProvider";
@@ -30,11 +32,17 @@ type Customer = {
   days_since_register: number;
 };
 
+const PAGE_SIZE = 50;
+
 export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [active30dCount, setActive30dCount] = useState(0);
+  const [suspendedCount, setSuspendedCount] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -43,16 +51,24 @@ export default function AdminPage() {
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/customers");
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (search.trim()) params.set("q", search.trim());
+      const res = await fetch(`/api/admin/customers?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setCustomers(data.customers ?? []);
+      setTotalCount(data.totalCount ?? 0);
+      setActive30dCount(data.active30dCount ?? 0);
+      setSuspendedCount(data.suspendedCount ?? 0);
     } catch (e) {
       toast(e instanceof Error ? e.message : t("admin.toast.fetchFail"), "error");
     } finally {
       setLoading(false);
     }
-  }, [toast, t]);
+  }, [page, search, toast, t]);
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -134,16 +150,9 @@ export default function AdminPage() {
     }, 60_000);
   }
 
-  const searchLower = search.toLowerCase();
-  const filtered = customers.filter(
-    (c) =>
-      !search ||
-      c.company_name.toLowerCase().includes(searchLower) ||
-      c.id.toLowerCase().includes(searchLower),
-  );
-
   const session = typeof window !== "undefined" ? getSession() : null;
   const dateLocale = locale === "en" ? "en-US" : "ja-JP";
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
@@ -177,9 +186,9 @@ export default function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={<Users className="w-5 h-5 text-emerald-500" />} label={t("admin.stats.total")} value={customers.length} />
-        <StatCard icon={<Activity className="w-5 h-5 text-blue-500" />} label={t("admin.stats.active30d")} value={customers.filter(c => c.logins_30d > 0).length} />
-        <StatCard icon={<Clock className="w-5 h-5 text-amber-500" />} label={t("admin.stats.suspended")} value={customers.filter(c => c.status === "suspended").length} />
+        <StatCard icon={<Users className="w-5 h-5 text-emerald-500" />} label={t("admin.stats.total")} value={totalCount} />
+        <StatCard icon={<Activity className="w-5 h-5 text-blue-500" />} label={t("admin.stats.active30d")} value={active30dCount} />
+        <StatCard icon={<Clock className="w-5 h-5 text-amber-500" />} label={t("admin.stats.suspended")} value={suspendedCount} />
       </div>
 
       {/* Search + Add */}
@@ -188,7 +197,10 @@ export default function AdminPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
             placeholder={t("admin.search")}
             className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             aria-label={t("common.search")}
@@ -226,14 +238,14 @@ export default function AdminPage() {
                     {t("admin.loading")}
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : customers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     {t("admin.empty")}
                   </td>
                 </tr>
               ) : (
-                filtered.map((c) => (
+                customers.map((c) => (
                   <tr key={c.id} className="border-t border-gray-100 dark:border-gray-700">
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{c.company_name}</td>
                     <td className="px-4 py-3">
@@ -272,10 +284,34 @@ export default function AdminPage() {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
+	        </div>
+	      </div>
 
-      {/* Add customer modal */}
+	      <div className="flex items-center justify-end gap-2 mt-4 text-sm text-gray-600 dark:text-gray-300">
+	        <span>
+	          {page + 1} / {totalPages}
+	        </span>
+	        <button
+	          onClick={() => setPage((p) => Math.max(0, p - 1))}
+	          disabled={page === 0 || loading}
+	          className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+	          aria-label="Previous page"
+	          title="Previous page"
+	        >
+	          <ChevronLeft className="w-4 h-4" />
+	        </button>
+	        <button
+	          onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+	          disabled={page >= totalPages - 1 || loading}
+	          className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+	          aria-label="Next page"
+	          title="Next page"
+	        >
+	          <ChevronRight className="w-4 h-4" />
+	        </button>
+	      </div>
+
+	      {/* Add customer modal */}
       {showAdd && <AddCustomerModal onClose={() => setShowAdd(false)} onCreate={createCustomer} />}
 
       {/* New credentials modal (shown once) */}

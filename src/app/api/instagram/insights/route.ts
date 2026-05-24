@@ -14,12 +14,20 @@ import { mockKPI } from "@/lib/mockData";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { decryptToken } from "@/lib/tokenCrypto";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "instagram_insights",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   const { searchParams } = new URL(req.url);
   const since = searchParams.get("since") ?? undefined;
@@ -74,12 +82,12 @@ export async function GET(req: NextRequest) {
         until,
       );
       return NextResponse.json({ ...data, mock: false });
-    } catch (e) {
+    } catch {
       return NextResponse.json(
         {
           ...mockKPI,
           mock: true,
-          error: e instanceof Error ? e.message : "Instagram fetch failed",
+          error: "instagram_fetch_failed",
         },
       );
     }

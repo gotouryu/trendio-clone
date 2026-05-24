@@ -73,10 +73,18 @@ function parseSignedRequest(
 }
 
 export async function POST(req: NextRequest) {
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 6000) {
+    return NextResponse.json(
+      { error: "signed_request_too_large" },
+      { status: 413 },
+    );
+  }
+
   const appSecret = env.metaAppSecret;
   if (!appSecret) {
     return NextResponse.json(
-      { error: "META_APP_SECRET not configured" },
+      { error: "meta_not_configured" },
       { status: 503 },
     );
   }
@@ -86,20 +94,26 @@ export async function POST(req: NextRequest) {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "invalid form data" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_form_data" }, { status: 400 });
   }
   const signedRequest = form.get("signed_request");
   if (typeof signedRequest !== "string") {
     return NextResponse.json(
-      { error: "signed_request missing" },
+      { error: "signed_request_missing" },
       { status: 400 },
+    );
+  }
+  if (signedRequest.length > 5000) {
+    return NextResponse.json(
+      { error: "signed_request_too_large" },
+      { status: 413 },
     );
   }
 
   const parsed = parseSignedRequest(signedRequest, appSecret);
   if (!parsed) {
     return NextResponse.json(
-      { error: "signed_request signature invalid" },
+      { error: "signed_request_invalid" },
       { status: 401 },
     );
   }

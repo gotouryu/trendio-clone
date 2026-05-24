@@ -12,6 +12,7 @@ import { fetchTikTokUserStats } from "@/lib/tiktok";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { decryptToken } from "@/lib/tokenCrypto";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,13 @@ const EMPTY_TIKTOK = {
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "tiktok_insights",
+    windowSec: 60,
+    maxInWindow: 10,
+  });
+  if (rateLimit) return rateLimit;
 
   const { searchParams } = new URL(req.url);
   const allowOverride = process.env.NODE_ENV !== "production";
@@ -57,11 +65,11 @@ export async function GET(req: NextRequest) {
   try {
     const stats = await fetchTikTokUserStats(accessToken);
     return NextResponse.json({ ...stats, mock: false });
-  } catch (e) {
+  } catch {
     return NextResponse.json({
       ...EMPTY_TIKTOK,
       mock: true,
-      error: e instanceof Error ? e.message : "TikTok fetch failed",
+      error: "tiktok_fetch_failed",
     });
   }
 }

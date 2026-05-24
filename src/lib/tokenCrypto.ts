@@ -5,7 +5,7 @@
  * - AES-256-GCM(=認証付き暗号、認証タグで改竄検知)
  * - 鍵は環境変数 TOKEN_ENCRYPTION_KEY(=hex 64 文字 / 32 バイト)から取得
  * - 暗号化文字列のフォーマット:`enc:v1:<base64(iv|ciphertext|authTag)>`
- *   - prefix が無ければ平文として扱う(=既存平文データの後方互換)
+ *   - prefix が無ければ開発環境だけ平文として扱う。本番では拒否する。
  * - 鍵未設定時:暗号化要求は throw(=本番投入前に必ず env 設定が必要)
  *
  * 利用箇所:
@@ -67,13 +67,16 @@ export function encryptToken(plaintext: string): string {
 
 /**
  * `enc:v1:<base64>` を復号して平文 token を返す。
- * prefix が無ければ平文として扱う(=既存平文データ救済)。
+ * prefix が無ければ開発環境だけ平文として扱う。本番では拒否する。
  * 復号失敗時は throw(=改竄 or 鍵不一致)。
  */
 export function decryptToken(stored: string): string {
   if (!stored) return stored;
   if (!stored.startsWith(ENC_PREFIX)) {
-    // 平文(=既存データ or 鍵未設定で保存されたもの)
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Plaintext SNS token is not allowed in production");
+    }
+    // 開発環境だけ平文の後方互換を許可する。
     return stored;
   }
   const key = getKey();

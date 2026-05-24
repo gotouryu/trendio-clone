@@ -31,7 +31,7 @@ export async function GET() {
     .maybeSingle();
 
   if (error && error.code !== "PGRST116") {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "auto_reply_settings_fetch_failed" }, { status: 500 });
   }
 
   if (!data) {
@@ -106,7 +106,11 @@ export async function PUT(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json(
+      { error: "auto_reply_settings_update_failed" },
+      { status: 500 },
+    );
 
   const settings: AutoReplySettings = {
     enabled: data.enabled,

@@ -96,9 +96,7 @@ export async function abortLogin(): Promise<void> {
       await sb.auth.signOut({ scope: "local" });
     }
   } finally {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(SESSION_KEY);
-    }
+    await clearClientSessionStorage();
   }
 }
 
@@ -110,9 +108,7 @@ export async function logout(): Promise<void> {
       await sb.auth.signOut({ scope: "local" });
     }
   } finally {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(SESSION_KEY);
-    }
+    await clearClientSessionStorage();
   }
 }
 
@@ -134,5 +130,14 @@ export function isAdmin(): boolean {
 function persist(s: Session) {
   if (typeof window !== "undefined") {
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  }
+}
+
+async function clearClientSessionStorage() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SESSION_KEY);
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
   }
 }

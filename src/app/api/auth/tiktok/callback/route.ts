@@ -70,10 +70,8 @@ export async function GET(req: NextRequest) {
   let tok: Awaited<ReturnType<typeof exchangeTikTokCode>>;
   try {
     tok = await exchangeTikTokCode(code);
-  } catch (e) {
-    if (e instanceof Error) {
-      console.error("[tiktok callback] token exchange failed:", e.message);
-    }
+  } catch {
+    console.error("[tiktok callback] token exchange failed");
     return redirectSettings(req, { error: "token_exchange_failed" });
   }
 
@@ -83,11 +81,9 @@ export async function GET(req: NextRequest) {
   try {
     const profile = await fetchTikTokUserProfile(tok.access_token);
     if (profile?.display_name) displayName = profile.display_name;
-  } catch (e) {
+  } catch {
     // 取得失敗は致命でない(=open_id にフォールバック)
-    if (e instanceof Error) {
-      console.error("[tiktok callback] user profile failed:", e.message);
-    }
+    console.error("[tiktok callback] user profile failed");
   }
 
   // expires_at: 24時間後を計算(=TikTok access_token のデフォルト)

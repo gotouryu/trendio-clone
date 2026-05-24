@@ -3,6 +3,7 @@ import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/supabase/requireAdmin";
 import { assertSameOrigin } from "@/lib/csrf";
 import { enforceUserRateLimit } from "@/lib/rateLimit";
+import { writeAdminAuditLog } from "@/lib/adminAudit";
 
 export const runtime = "nodejs";
 
@@ -61,7 +62,14 @@ export async function PATCH(
       .update({ status })
       .eq("id", id);
     if (error)
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "customer_status_update_failed" }, { status: 500 });
+    await writeAdminAuditLog({
+      actorUserId: auth.userId,
+      action: `admin_customer_${body.action}`,
+      targetUserId: id,
+      payload: { status },
+      req,
+    });
     return NextResponse.json({ ok: true, status });
   }
 
@@ -71,7 +79,13 @@ export async function PATCH(
       password: newPassword,
     });
     if (error)
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "password_reset_failed" }, { status: 500 });
+    await writeAdminAuditLog({
+      actorUserId: auth.userId,
+      action: "admin_customer_reset_password",
+      targetUserId: id,
+      req,
+    });
     // Phase 3 Wave-B:Cache-Control: no-store でパスワードを CDN/proxy にキャッシュさせない
     return noStoreJson({ ok: true, newPassword });
   }
@@ -130,7 +144,13 @@ export async function DELETE(
 
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "customer_delete_failed" }, { status: 500 });
+  await writeAdminAuditLog({
+    actorUserId: auth.userId,
+    action: "admin_customer_delete",
+    targetUserId: id,
+    req,
+  });
   return NextResponse.json({ ok: true });
 }
 

@@ -9,6 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/supabase/requireUser";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { mockAutoReplyLogs } from "@/lib/mockData";
 import type { AutoReplyLog } from "@/lib/types";
 
@@ -17,21 +18,34 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const rateLimit = await enforceUserRateLimit({
+    userId: auth.userId,
+    kind: "auto_reply_logs_list",
+    windowSec: 60,
+    maxInWindow: 60,
+  });
+  if (rateLimit) return rateLimit;
 
   const { searchParams } = new URL(req.url);
   const pagination = parsePagination(searchParams, 50, 200);
   if (!pagination.ok) return pagination.response;
   const { limit, offset } = pagination;
   const statusFilter = searchParams.get("status");
+  const allowedStatuses = new Set(["sent", "failed", "blocked_ng", "skipped", "duplicate"]);
+  if (statusFilter && !allowedStatuses.has(statusFilter)) {
+    return NextResponse.json({ error: "invalid status" }, { status: 400 });
+  }
 
   const sb = await createSupabaseServer();
   if (!sb) {
     let logs = mockAutoReplyLogs;
     if (statusFilter) logs = logs.filter((l) => l.status === statusFilter);
+    const totalCount = logs.length;
+    logs = logs.slice(offset, offset + limit);
     return NextResponse.json({
       logs,
-      totalCount: logs.length,
-      monthlyCount: logs.length,
+      totalCount,
+      monthlyCount: totalCount,
       mock: true,
     });
   }
@@ -46,7 +60,7 @@ export async function GET(req: NextRequest) {
   if (statusFilter) query = query.eq("status", statusFilter);
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "auto_reply_logs_fetch_failed" }, { status: 500 });
 
   // 当月集計(共P-01「対応漏れの可視化」用の月次サマリ)
   const monthStart = new Date();

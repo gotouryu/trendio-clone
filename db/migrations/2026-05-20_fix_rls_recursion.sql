@@ -16,7 +16,7 @@ as $$
 $$;
 
 revoke all on function public.is_admin(uuid) from public;
-grant execute on function public.is_admin(uuid) to authenticated, anon, service_role;
+grant execute on function public.is_admin(uuid) to authenticated, service_role;
 
 -- 2. profiles SELECT ポリシー差し替え
 drop policy if exists "profiles: own row or admin read" on public.profiles;

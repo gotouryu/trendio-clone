@@ -18,7 +18,17 @@ import { NextResponse } from "next/server";
 
 export type RateLimitResult =
   | { allowed: true }
-  | { allowed: false; retryAfterSec: number };
+  | { allowed: false; retryAfterSec: number; unavailable?: boolean };
+
+function unavailableRateLimit(): RateLimitResult {
+  return { allowed: false, retryAfterSec: 60, unavailable: true };
+}
+
+function allowWhenNotProduction(): RateLimitResult {
+  return process.env.NODE_ENV === "production"
+    ? unavailableRateLimit()
+    : { allowed: true };
+}
 
 export async function consumeRateLimit({
   userId,
@@ -31,15 +41,13 @@ export async function consumeRateLimit({
   windowSec: number;
   maxInWindow: number;
 }): Promise<RateLimitResult> {
-  // Supabase 未設定なら制限なしで通す(=デモ環境用)
-  if (!hasSupabase()) return { allowed: true };
+  if (!hasSupabase()) return allowWhenNotProduction();
 
   let sb;
   try {
     sb = createSupabaseAdmin();
   } catch {
-    // service role key 未設定:制限なしで通す(=デモ環境)
-    return { allowed: true };
+    return allowWhenNotProduction();
   }
 
   const now = new Date();
@@ -53,14 +61,13 @@ export async function consumeRateLimit({
     .maybeSingle();
 
   if (error) {
-    // テーブル未作成等のエラーは制限なしで通す(=fail-open、運用者がログで気付く)
-    console.warn("[rateLimit] select failed:", error.message);
-    return { allowed: true };
+    console.warn("[rateLimit] select failed");
+    return allowWhenNotProduction();
   }
 
   if (!data) {
     // 初回:INSERT
-    await sb.from("rate_limits").upsert(
+    const { error: upsertError } = await sb.from("rate_limits").upsert(
       {
         user_id: userId,
         kind,
@@ -69,6 +76,10 @@ export async function consumeRateLimit({
       },
       { onConflict: "user_id,kind" },
     );
+    if (upsertError) {
+      console.warn("[rateLimit] upsert failed");
+      return allowWhenNotProduction();
+    }
     return { allowed: true };
   }
 
@@ -77,7 +88,7 @@ export async function consumeRateLimit({
 
   if (elapsedSec >= windowSec) {
     // 新ウィンドウ開始(=count を 1 にリセット)
-    await sb
+    const { error: updateError } = await sb
       .from("rate_limits")
       .update({
         window_started_at: nowIso,
@@ -85,6 +96,10 @@ export async function consumeRateLimit({
       })
       .eq("user_id", userId)
       .eq("kind", kind);
+    if (updateError) {
+      console.warn("[rateLimit] reset failed");
+      return allowWhenNotProduction();
+    }
     return { allowed: true };
   }
 
@@ -96,11 +111,15 @@ export async function consumeRateLimit({
   }
 
   // ウィンドウ内 + 上限未満:インクリメント
-  await sb
+  const { error: incrementError } = await sb
     .from("rate_limits")
     .update({ count: data.count + 1 })
     .eq("user_id", userId)
     .eq("kind", kind);
+  if (incrementError) {
+    console.warn("[rateLimit] increment failed");
+    return allowWhenNotProduction();
+  }
   return { allowed: true };
 }
 
@@ -122,6 +141,18 @@ export async function enforceUserRateLimit({
     maxInWindow,
   });
   if (rate.allowed) return null;
+  if (rate.unavailable) {
+    return NextResponse.json(
+      {
+        error: "rate_limit_unavailable",
+        retryAfterSec: rate.retryAfterSec,
+      },
+      {
+        status: 503,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
+    );
+  }
   return NextResponse.json(
     {
       error: "rate_limited",
