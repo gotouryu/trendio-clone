@@ -230,8 +230,11 @@ export type ScriptPlatform = "instagram" | "tiktok" | "all";
 
 // 段階①の入力(=企画と台本の精度に使う条件)
 export type ScriptBrief = {
+  industry: string;        // 業種(美容、飲食、士業など)
+  businessType: string;    // 業態(店舗型、オンライン、BtoBなど)
   target: string;          // ターゲット(誰に向けた動画か)
   theme: string;           // 投稿テーマ
+  trendReference: string;  // 参考にしたい流行・型・競合投稿の傾向
   goal: string;            // 投稿目的(認知、保存、問い合わせなど)
   sellingPoints: string;   // 訴求ポイント・根拠
   avoidExpressions: string;// 避けたい表現
@@ -251,10 +254,14 @@ export type ScriptBrief = {
 // 段階①の出力(=企画案)
 export type PlanIdea = {
   id: string;
+  angle: string;       // 企画タイプ(トレンド、バズ、保存、信頼、新規性)
   title: string;       // 企画タイトル
   concept: string;     // 企画の狙い・コンセプト
   hook: string;        // 冒頭フック(掴み)
   outline: string;     // 構成の概要(数行)
+  trendFit: string;    // どの流行・投稿型に寄せたか
+  buzzReason: string;  // 反応が起きる理由
+  recommendedFor: string; // どんな目的・状況に向くか
 };
 
 // 段階②の出力:1シーン

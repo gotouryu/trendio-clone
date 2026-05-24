@@ -138,8 +138,11 @@ function sanitizeBrief(raw: unknown): ScriptBrief {
   const platform: ScriptPlatform =
     b.platform === "instagram" || b.platform === "tiktok" ? b.platform : "all";
   return {
+    industry: toStr(b.industry),
+    businessType: toStr(b.businessType),
     target: toStr(b.target),
     theme: toStr(b.theme),
+    trendReference: toStr(b.trendReference),
     goal: toStr(b.goal),
     sellingPoints: toStr(b.sellingPoints),
     avoidExpressions: toStr(b.avoidExpressions),
@@ -160,8 +163,11 @@ function sanitizeBrief(raw: unknown): ScriptBrief {
 // お客様が入力した10項目を、両プロンプトに同一フォーマットで注入する
 function briefBlock(b: ScriptBrief): string {
   return `<brief>
+<industry>${b.industry || "未指定"}</industry>
+<business_type>${b.businessType || "未指定"}</business_type>
 <target>${b.target || "未指定"}</target>
 <theme>${b.theme || "未指定"}</theme>
+<trend_reference>${b.trendReference || "未指定。リアルタイムの流行は取得していないため、入力された傾向や一般的な投稿型だけを使う"}</trend_reference>
 <goal>${b.goal || "未指定"}</goal>
 <selling_points>${b.sellingPoints || "未指定。入力されていない根拠や強みは作らない"}</selling_points>
 <avoid_expressions>${b.avoidExpressions || "未指定"}</avoid_expressions>
@@ -209,13 +215,17 @@ function normalizePlans(raw: unknown): PlanIdea[] {
       const p = asObject(item);
       return {
         id: `plan-${Date.now()}-${i}`,
+        angle: compactText(p.angle, 30),
         title: compactText(p.title, 40),
         concept: compactText(p.concept, 120),
         hook: compactText(p.hook, 90),
         outline: lineText(p.outline, 500),
+        trendFit: compactText(p.trendFit, 120),
+        buzzReason: compactText(p.buzzReason, 120),
+        recommendedFor: compactText(p.recommendedFor, 120),
       };
     })
-    .filter((p) => p.title && p.concept && p.hook && p.outline)
+    .filter((p) => p.angle && p.title && p.concept && p.hook && p.outline)
     .slice(0, 5);
 }
 
@@ -285,12 +295,16 @@ function normalizeScript(raw: unknown, plan: PlanIdea, brief: ScriptBrief): Gene
 
 const PLAN_SCHEMA = {
   type: "array",
-  minItems: 3,
-  maxItems: 3,
+  minItems: 5,
+  maxItems: 5,
   items: {
     type: "object",
     additionalProperties: false,
     properties: {
+      angle: {
+        type: "string",
+        description: "企画タイプ。trend, buzz, save, trust, original のいずれかを日本語で分かる短い名前にする。",
+      },
       title: {
         type: "string",
         description: "短く覚えやすい企画タイトル。視聴者向けではなく選択肢名。",
@@ -307,8 +321,29 @@ const PLAN_SCHEMA = {
         type: "string",
         description: "動画の流れ。2から4行で冒頭、本編、CTAが分かる。",
       },
+      trendFit: {
+        type: "string",
+        description: "参考にした投稿型、流行の型、または流行に寄せない理由。",
+      },
+      buzzReason: {
+        type: "string",
+        description: "コメント、保存、シェア、視聴維持のどれが起きやすいかと理由。",
+      },
+      recommendedFor: {
+        type: "string",
+        description: "この企画が向く投稿目的、商材状況、顧客心理。",
+      },
     },
-    required: ["title", "concept", "hook", "outline"],
+    required: [
+      "angle",
+      "title",
+      "concept",
+      "hook",
+      "outline",
+      "trendFit",
+      "buzzReason",
+      "recommendedFor",
+    ],
   },
 } as const;
 
@@ -378,46 +413,74 @@ const SCRIPT_SCHEMA = {
 } as const;
 
 // ------------------------------------------------------------
-// 段階①:企画案を3つ生成
+// 段階①:企画案を5つ生成
 // ------------------------------------------------------------
 const SYSTEM_PLANS = `<role>
-あなたは日本の中小企業が集客・認知・信頼形成に使うInstagramリールを設計するSNS動画プランナーです。
-企画の価値は「ターゲットが止まる」「視聴後に会社の訴求が残る」「台本化して撮れる」「CTAに進む理由がある」の4点で判定します。
+あなたは日本の中小企業がInstagramリールやショート動画で成果を出すためのSNS企画責任者です。
+営業訴求だけに寄せず、「バズる可能性」「保存される価値」「信頼形成」「撮影しやすさ」「新しい切り口」のバランスで企画を判断します。
 </role>
 
 <task>
-ユーザー入力だけを根拠に、動画尺に収まる企画候補を内部で比較し、採用価値が高い3案だけ返してください。
-3案はターゲット心理、見せ方、訴求導線のいずれかを変え、ユーザーが比較して選べる差を作ってください。
+ユーザー入力だけを根拠に、動画尺に収まる企画候補を内部で比較し、使い分けできる5案だけ返してください。
+5案は必ず次の5タイプに分け、似たタイトルや似た構成を並べないでください。
 </task>
 
+<required_angles>
+1. trend: 入力された業種・業態・参考トレンドに合う投稿型へ寄せる案。参考トレンド未指定の場合は、チェックリスト、あるある、比較、裏側、失敗回避など一般的なショート動画の型から選ぶ。
+2. buzz: コメント、共感、ツッコミ、意外性、続きが気になる構成で反応を狙う案。ただし炎上狙い、誇張、煽りすぎは禁止。
+3. save: 後で見返したくなるチェックリスト、手順、比較表、選び方、注意点の案。
+4. trust: 信頼、安心、専門性、選ばれる理由、裏側、利用前の不安解消を作る案。
+5. original: 競合がやりがちな型から少し外した新しい切り口の案。奇抜さだけでなく、業種・業態と撮影可能性を守る。
+</required_angles>
+
+<industry_context>
+業種・業態は最優先の文脈として扱う。同じターゲット・投稿目的でも、業種ごとに視聴者の悩み、信用の作り方、撮影素材、CTA導線、避けるべき表現を変える。
+- 美容室・サロン: 似合わせ、仕上がり、再現性、相談しやすさ、予約導線を重視。効果断定や過度なBefore/Afterに寄せすぎない。
+- エステ・美容医療・健康系: 不安解消、安心感、継続しやすさ、相談導線を重視。治る、痩せる保証、医学的断定、過度な効能表現は禁止。
+- 整体・整骨・鍼灸: 悩み共感、生活習慣、来店ハードル低下、初回相談を重視。完治、即効、医療効果の断定は禁止。
+- 飲食: 食欲、利用シーン、限定感、写真映え、来店理由を重視。味や人気を捏造しない。
+- 士業・専門サービス: 分かりやすさ、不安解消、信頼、相談導線を重視。必ず得する、絶対解決、成果保証は禁止。
+- 不動産・住宅: 暮らしの具体像、比較ポイント、失敗回避、内見・相談導線を重視。未入力の価格、利回り、施工実績は作らない。
+- 教育・スクール: 成長過程、講師の安心感、続けやすさ、体験申込を重視。必ず合格、確実に上達などの保証は禁止。
+- EC・物販: 使用シーン、選び方、比較、開封、悩み解決、購入導線を重視。実在しないレビュー、ランキング、受賞歴は作らない。
+- BtoBサービス: 業務課題、時間削減、属人化解消、導入後の変化、資料請求を重視。未入力の削減率や導入実績は作らない。
+</industry_context>
+
 <quality_bar>
-- 1案目はターゲットの悩み、欲求、あるある、失敗回避のいずれかを起点にする
-- 2案目はチェック、比較、意外性、検証、誤解解消のいずれかで続きを見たくさせる
-- 3案目は信頼、根拠、利用シーン、選ばれる理由、裏側のいずれかで会社らしさを出す
-- 各案で「誰のどんな気持ちを動かすか」「何を見せる動画か」「なぜCTAへ進むか」が読み取れる
-- 冒頭のhookは投稿テーマの言い換えで終わらせず、視聴者が自分事化する一言にする
-- 企画のoutlineは、冒頭フック、本編の価値、締めの行動が想像できる順にする
-- テンプレ感の強い言葉だけで埋めず、入力テーマ・訴求ポイント・使える素材に固有の要素を使う
+- 各案で「なぜ見られるか」「なぜ反応されるか」「なぜ次の行動へ進むか」が読み取れる
+- 冒頭hookは投稿テーマの言い換えで終わらせず、ターゲットが自分事化する一言にする
+- outlineは、冒頭フック、本編の価値、締めの行動が想像できる順にする
+- trendFitには、参考にした投稿型・流行型、または流行に寄せない判断理由を書く
+- buzzReasonには、視聴維持、コメント、保存、シェアのどれを狙うかを明記する
+- recommendedForには、どの目的や状況で選ぶべき案かを書く
+- テンプレ感の強い言葉だけで埋めず、業種・業態・入力テーマ・訴求ポイント・使える素材に固有の要素を使う
 </quality_bar>
 
 <output_fields>
+- angle: 企画タイプ(trend / buzz / save / trust / original の意味が分かる短い日本語)
 - title: 企画タイトル(30文字以内)
 - concept: 企画の狙い・コンセプト(80文字以内)
 - hook: 冒頭2秒の掴み(視聴者がスワイプを止める一言、60文字以内)
 - outline: 構成の概要(2〜3行、改行で区切る)
+- trendFit: 寄せた投稿型・流行型・参考トレンドの使い方(80文字以内)
+- buzzReason: 反応、保存、視聴維持が起きる理由(80文字以内)
+- recommendedFor: この企画を選ぶべき目的・状況(80文字以内)
 </output_fields>
 
 <selection_rubric>
 候補を内部比較する時は次の順で優先してください。
 1. ターゲット適合: 入力された相手が止まり、最後まで見る理由がある
-2. 訴求適合: 投稿目的と会社・商品・サービスの価値が自然につながる
-3. 制作適合: 指定尺、演者、ナレーション、使える素材で撮影・編集できる
-4. 差別化: 3案の見え方と選ぶ理由が重複しすぎない
+2. 業種適合: 業種・業態の悩み、購買行動、撮影素材、表現リスクに合っている
+3. 拡散/保存適合: 企画タイプごとに、反応・保存・信頼・新規性の狙いが明確
+4. 制作適合: 指定尺、演者、ナレーション、使える素材で撮影・編集できる
+5. 差別化: 5案の見え方と選ぶ理由が重複しすぎない
 </selection_rubric>
 
 <constraints>
-- ターゲット・投稿テーマ・絶対に入れたい内容・CTAを3案すべてに反映する
+- ターゲット・投稿テーマ・業種・業態・絶対に入れたい内容・CTAを5案すべてに反映する
 - 投稿目的、訴求ポイント、動画トーン、使える素材がある時は企画の方向と見せ方に反映する
+- 参考トレンドがある時は、その型を丸写しせず、業種・業態に合う形へ翻訳する
+- 参考トレンドが未指定の場合、リアルタイムの流行を知っている前提で断言しない
 - 避けたい表現がある時は言い換えまたは企画構造で回避する
 - 入力が薄い場合も一般論だけの企画名で逃げず、与えられた情報の範囲で視聴者の状況と見せ方を具体化する
 - 未入力の実績、数値、口コミ、制度、効果を事実のように捏造しない
@@ -638,10 +701,14 @@ ${briefBlock(brief)}
   const planRaw = (body.plan ?? {}) as Record<string, unknown>;
   const plan: PlanIdea = {
     id: toStr(planRaw.id),
+    angle: toStr(planRaw.angle),
     title: toStr(planRaw.title),
     concept: toStr(planRaw.concept),
     hook: toStr(planRaw.hook),
     outline: toStr(planRaw.outline),
+    trendFit: toStr(planRaw.trendFit),
+    buzzReason: toStr(planRaw.buzzReason),
+    recommendedFor: toStr(planRaw.recommendedFor),
   };
   if (!plan.title) {
     return NextResponse.json({ error: "採用する企画案がありません" }, { status: 400 });

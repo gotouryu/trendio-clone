@@ -44,8 +44,11 @@ const TONE_OPTIONS = [
 ];
 
 const emptyBrief: ScriptBrief = {
+  industry: "",
+  businessType: "",
   target: "",
   theme: "",
+  trendReference: "",
   goal: "",
   sellingPoints: "",
   avoidExpressions: "",
