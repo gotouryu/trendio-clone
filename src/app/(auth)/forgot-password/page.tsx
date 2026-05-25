@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createSupabaseBrowser, isSupabaseReady } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { env } from "@/lib/env";
 
 /**
  * Password reset request page.
- * Calls Supabase Auth resetPasswordForEmail with the production reset URL.
+ * Calls the server API so reset requests can be rate limited before Supabase.
  * Always shows the same success message regardless of whether the email
  * exists in the database (prevents email enumeration attacks).
  */
@@ -25,18 +23,12 @@ export default function ForgotPasswordPage() {
     if (!email) return;
     setSubmitting(true);
 
-    if (!isSupabaseReady()) {
-      setError(t("forgot.err.notConfigured"));
-      setSubmitting(false);
-      return;
-    }
-
     try {
-      const sb = createSupabaseBrowser();
-      const redirectTo = `${env.appUrl.replace(/\/$/, "")}/reset-password`;
-      // Supabase returns success even for non-existent emails — that is the
-      // intended behaviour (no email enumeration). We always show "sent".
-      await sb.auth.resetPasswordForEmail(email, { redirectTo });
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
       setSent(true);
     } catch {
       // Network failures: still show generic "sent" to prevent enumeration

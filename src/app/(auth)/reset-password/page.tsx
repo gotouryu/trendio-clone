@@ -69,6 +69,7 @@ export default function ResetPasswordPage() {
         setError(err.message || t("reset.err.failed"));
         return;
       }
+      await sb.auth.signOut({ scope: "local" });
       setDone(true);
       // 5秒後にログインへ
       setTimeout(() => router.push("/login"), 5000);

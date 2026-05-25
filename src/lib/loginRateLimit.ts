@@ -16,13 +16,14 @@ const LIMITS = {
 } as const;
 
 const memoryCounters = new Map<string, Counter>();
+type AttemptScope = "login" | "password_reset";
 
 function hashPart(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 32);
 }
 
-function rateKey(kind: keyof typeof LIMITS, value: string): string {
-  return `login:${kind}:${hashPart(value)}`;
+function rateKey(scope: AttemptScope, kind: keyof typeof LIMITS, value: string): string {
+  return `${scope}:${kind}:${hashPart(value)}`;
 }
 
 function nowIso(): string {
@@ -127,20 +128,21 @@ function resetMemory(keys: ReturnType<typeof keysForAttempt>) {
   for (const item of keys) memoryCounters.delete(item.key);
 }
 
-function keysForAttempt(email: string, ip: string | null) {
+function keysForAttempt(email: string, ip: string | null, scope: AttemptScope) {
   const normalizedIp = ip || "unknown";
   return [
-    { key: rateKey("ip", normalizedIp), limit: LIMITS.ip },
-    { key: rateKey("email", email), limit: LIMITS.email },
-    { key: rateKey("pair", `${normalizedIp}:${email}`), limit: LIMITS.pair },
+    { key: rateKey(scope, "ip", normalizedIp), limit: LIMITS.ip },
+    { key: rateKey(scope, "email", email), limit: LIMITS.email },
+    { key: rateKey(scope, "pair", `${normalizedIp}:${email}`), limit: LIMITS.pair },
   ];
 }
 
-export async function checkLoginRateLimit(
+export async function checkAttemptRateLimit(
   email: string,
   ip: string | null,
+  scope: AttemptScope,
 ): Promise<LoginRateLimitCheck> {
-  const keys = keysForAttempt(email, ip);
+  const keys = keysForAttempt(email, ip, scope);
   try {
     for (const item of keys) {
       const current = await readKey(item.key);
@@ -164,8 +166,12 @@ export async function checkLoginRateLimit(
   return { allowed: true };
 }
 
-export async function recordFailedLogin(email: string, ip: string | null) {
-  const keys = keysForAttempt(email, ip);
+export async function recordFailedAttempt(
+  email: string,
+  ip: string | null,
+  scope: AttemptScope,
+) {
+  const keys = keysForAttempt(email, ip, scope);
   try {
     await Promise.all(keys.map((item) => incrementKey(item.key)));
   } catch {
@@ -174,12 +180,36 @@ export async function recordFailedLogin(email: string, ip: string | null) {
   }
 }
 
-export async function clearLoginRateLimit(email: string, ip: string | null) {
-  const keys = keysForAttempt(email, ip);
+export async function clearAttemptRateLimit(
+  email: string,
+  ip: string | null,
+  scope: AttemptScope,
+) {
+  const keys = keysForAttempt(email, ip, scope);
   try {
     await Promise.all(keys.map((item) => resetKey(item.key)));
   } catch {
     console.warn("[auth login] rate limit reset unavailable");
     resetMemory(keys);
   }
+}
+
+export function checkLoginRateLimit(email: string, ip: string | null) {
+  return checkAttemptRateLimit(email, ip, "login");
+}
+
+export function recordFailedLogin(email: string, ip: string | null) {
+  return recordFailedAttempt(email, ip, "login");
+}
+
+export function clearLoginRateLimit(email: string, ip: string | null) {
+  return clearAttemptRateLimit(email, ip, "login");
+}
+
+export function checkPasswordResetRateLimit(email: string, ip: string | null) {
+  return checkAttemptRateLimit(email, ip, "password_reset");
+}
+
+export function recordPasswordResetAttempt(email: string, ip: string | null) {
+  return recordFailedAttempt(email, ip, "password_reset");
 }
