@@ -103,13 +103,16 @@ export async function PATCH(
       return NextResponse.json({ error: "audit_log_failed" }, { status: 500 });
     }
     const newPassword = generatePassword(12);
-    const { error } = await admin.auth.admin.updateUserById(id, {
+    const [{ data: userData }, { error }] = await Promise.all([
+      admin.auth.admin.getUserById(id),
+      admin.auth.admin.updateUserById(id, {
       password: newPassword,
-    });
+      }),
+    ]);
     if (error)
       return NextResponse.json({ error: "password_reset_failed" }, { status: 500 });
     // Phase 3 Wave-B:Cache-Control: no-store でパスワードを CDN/proxy にキャッシュさせない
-    return noStoreJson({ ok: true, newPassword });
+    return noStoreJson({ ok: true, email: userData.user?.email ?? null, newPassword });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

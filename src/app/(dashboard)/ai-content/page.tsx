@@ -19,6 +19,7 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 type Step = "input" | "plans" | "script";
+const MAX_SAVED_SCRIPTS = 20;
 type UsageInfo = {
   used: number;
   limit: number;
@@ -377,10 +378,12 @@ export default function AIContentPage() {
       toast("すでに保存済みです", "info");
       return;
     }
-    setSaved((prev) => [
-      { ...script, savedAt: new Date().toISOString().slice(0, 10) },
-      ...prev,
-    ]);
+    setSaved((prev) =>
+      [
+        { ...script, savedAt: new Date().toISOString().slice(0, 10) },
+        ...prev,
+      ].slice(0, MAX_SAVED_SCRIPTS),
+    );
     toast("台本を保存しました", "success");
   }
 

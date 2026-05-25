@@ -50,6 +50,31 @@ export async function consumeRateLimit({
     return allowWhenNotProduction();
   }
 
+  const { data: atomic, error: atomicError } = await sb.rpc(
+    "consume_rate_limit",
+    {
+      p_user_id: userId,
+      p_kind: kind,
+      p_window_sec: windowSec,
+      p_max_in_window: maxInWindow,
+    },
+  );
+  if (!atomicError && Array.isArray(atomic) && atomic[0]) {
+    const result = atomic[0] as {
+      allowed: boolean;
+      retry_after_sec: number | null;
+    };
+    return result.allowed
+      ? { allowed: true }
+      : {
+          allowed: false,
+          retryAfterSec: Math.max(1, result.retry_after_sec ?? 60),
+        };
+  }
+  if (atomicError && process.env.NODE_ENV === "production") {
+    console.warn("[rateLimit] atomic rpc unavailable");
+  }
+
   const now = new Date();
   const nowIso = now.toISOString();
 

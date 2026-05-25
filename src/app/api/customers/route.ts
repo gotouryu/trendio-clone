@@ -16,6 +16,11 @@ import type { Customer } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const ALLOWED_TAGS = ["VIP", "既存顧客", "問い合わせ多", "新規", "リピーター", "クレーム経験"] as const;
+const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"] as const;
+const ALLOWED_AGE_RANGES = ["13-17", "18-24", "25-34", "35-44", "45+"] as const;
+const ALLOWED_GENDERS = ["female", "male", "other"] as const;
+
 export async function GET(req: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
@@ -124,12 +129,25 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (body.displayName && body.displayName.length > 80) {
+  if (
+    body.displayName !== undefined &&
+    (typeof body.displayName !== "string" || body.displayName.length > 80)
+  ) {
     return NextResponse.json(
       { error: "displayName too long" },
       { status: 400 },
     );
   }
+  const profileImageUrl = validateOptionalTextUrl(body.profileImageUrl, 500);
+  if (!profileImageUrl.ok) return profileImageUrl.response;
+  const notes = validateOptionalText(body.notes, "notes", 2000);
+  if (!notes.ok) return notes.response;
+  const region = validateOptionalText(body.region, "region", 50);
+  if (!region.ok) return region.response;
+  const ageRange = validateOptionalEnum(body.ageRange, "ageRange", ALLOWED_AGE_RANGES);
+  if (!ageRange.ok) return ageRange.response;
+  const gender = validateOptionalEnum(body.gender, "gender", ALLOWED_GENDERS);
+  if (!gender.ok) return gender.response;
   if (
     body.autoReplyEnabled !== undefined &&
     typeof body.autoReplyEnabled !== "boolean"
@@ -140,12 +158,13 @@ export async function POST(req: NextRequest) {
     );
   }
   // 許可されたタグのみ受け付け(=Critical C6-E)
-  const ALLOWED_TAGS = ["VIP", "既存顧客", "問い合わせ多", "新規", "リピーター", "クレーム経験"];
+  if (body.tags !== undefined && !Array.isArray(body.tags)) {
+    return NextResponse.json({ error: "tags must be array" }, { status: 400 });
+  }
   const sanitizedTags = body.tags
     ? body.tags.filter((tag) => ALLOWED_TAGS.includes(tag)).slice(0, 6)
     : undefined;
   // status は schema CHECK 制約で守られているが、念のため明示
-  const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"];
   const sanitizedStatus = body.status && ALLOWED_STATUS.includes(body.status)
     ? body.status
     : undefined;
@@ -157,13 +176,17 @@ export async function POST(req: NextRequest) {
       id: `mock-${Date.now()}`,
       instagramHandle: body.instagramHandle,
       displayName: body.displayName ?? body.instagramHandle,
-      profileImageUrl: body.profileImageUrl ?? "/avatars/user-1.svg",
+      profileImageUrl: profileImageUrl.value ?? "/avatars/user-1.svg",
       firstContactAt: now,
       lastContactAt: now,
       totalInteractions: 0,
-      tags: body.tags ?? ["新規"],
-      status: body.status ?? "new",
+      tags: sanitizedTags ?? ["新規"],
+      status: sanitizedStatus ?? "new",
       autoReplyEnabled: body.autoReplyEnabled ?? true,
+      notes: notes.value,
+      ageRange: ageRange.value,
+      gender: gender.value,
+      region: region.value,
     };
     return NextResponse.json({ customer, mock: true });
   }
@@ -189,12 +212,12 @@ export async function POST(req: NextRequest) {
       .from("customers")
       .update({
         display_name: body.displayName ?? undefined,
-        profile_image_url: body.profileImageUrl ?? undefined,
+        profile_image_url: profileImageUrl.value ?? undefined,
         last_contact_at: now,
-        notes: body.notes ?? undefined,
-        age_range: body.ageRange ?? undefined,
-        gender: body.gender ?? undefined,
-        region: body.region ?? undefined,
+        notes: notes.value ?? undefined,
+        age_range: ageRange.value ?? undefined,
+        gender: gender.value ?? undefined,
+        region: region.value ?? undefined,
       })
       .eq("id", existing.id)
       .select()
@@ -209,16 +232,16 @@ export async function POST(req: NextRequest) {
         user_id: auth.userId,
         instagram_handle: body.instagramHandle,
         display_name: body.displayName ?? body.instagramHandle,
-        profile_image_url: body.profileImageUrl,
+        profile_image_url: profileImageUrl.value,
         first_contact_at: now,
         last_contact_at: now,
         tags: sanitizedTags ?? ["新規"],
         status: sanitizedStatus ?? "new",
         auto_reply_enabled: body.autoReplyEnabled ?? true,
-        notes: body.notes,
-        age_range: body.ageRange,
-        gender: body.gender,
-        region: body.region,
+        notes: notes.value,
+        age_range: ageRange.value,
+        gender: gender.value,
+        region: region.value,
       })
       .select()
       .single();
@@ -230,12 +253,12 @@ export async function POST(req: NextRequest) {
         .from("customers")
         .update({
           display_name: body.displayName ?? undefined,
-          profile_image_url: body.profileImageUrl ?? undefined,
+          profile_image_url: profileImageUrl.value ?? undefined,
           last_contact_at: now,
-          notes: body.notes ?? undefined,
-          age_range: body.ageRange ?? undefined,
-          gender: body.gender ?? undefined,
-          region: body.region ?? undefined,
+          notes: notes.value ?? undefined,
+          age_range: ageRange.value ?? undefined,
+          gender: gender.value ?? undefined,
+          region: region.value ?? undefined,
         })
         .eq("user_id", auth.userId)
         .eq("instagram_handle", body.instagramHandle)
@@ -325,4 +348,65 @@ function parsePagination(
   }
 
   return { ok: true, limit, offset };
+}
+
+function validateOptionalText(
+  value: unknown,
+  field: string,
+  maxLength: number,
+):
+  | { ok: true; value: string | undefined }
+  | { ok: false; response: NextResponse } {
+  if (value === undefined || value === null) return { ok: true, value: undefined };
+  if (typeof value !== "string" || value.length > maxLength) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: `${field} must be a string up to ${maxLength} chars` },
+        { status: 400 },
+      ),
+    };
+  }
+  return { ok: true, value };
+}
+
+function validateOptionalTextUrl(
+  value: unknown,
+  maxLength: number,
+):
+  | { ok: true; value: string | undefined }
+  | { ok: false; response: NextResponse } {
+  const text = validateOptionalText(value, "profileImageUrl", maxLength);
+  if (!text.ok || !text.value) return text;
+  if (text.value.startsWith("/")) return text;
+  try {
+    const url = new URL(text.value);
+    if (url.protocol === "http:" || url.protocol === "https:") return text;
+  } catch {
+    // handled below
+  }
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: "profileImageUrl must be http(s) or relative path" },
+      { status: 400 },
+    ),
+  };
+}
+
+function validateOptionalEnum<T extends readonly string[]>(
+  value: unknown,
+  field: string,
+  allowed: T,
+):
+  | { ok: true; value: T[number] | undefined }
+  | { ok: false; response: NextResponse } {
+  if (value === undefined || value === null) return { ok: true, value: undefined };
+  if (typeof value === "string" && allowed.includes(value)) {
+    return { ok: true, value };
+  }
+  return {
+    ok: false,
+    response: NextResponse.json({ error: `${field} is invalid` }, { status: 400 }),
+  };
 }

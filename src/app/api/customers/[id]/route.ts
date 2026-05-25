@@ -16,6 +16,17 @@ export const runtime = "nodejs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ALLOWED_TAGS = [
+  "VIP",
+  "既存顧客",
+  "問い合わせ多",
+  "新規",
+  "リピーター",
+  "クレーム経験",
+] as const;
+const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"] as const;
+const ALLOWED_AGE_RANGES = ["13-17", "18-24", "25-34", "35-44", "45+"] as const;
+const ALLOWED_GENDERS = ["female", "male", "other"] as const;
 
 export async function GET(
   _req: NextRequest,
@@ -85,29 +96,25 @@ export async function PATCH(
     return NextResponse.json({ customer, mock: true });
   }
 
-  // Phase 4 修正(C3):POST 側と同じ tags/status sanitize を PATCH にも適用
-  const ALLOWED_TAGS = [
-    "VIP",
-    "既存顧客",
-    "問い合わせ多",
-    "新規",
-    "リピーター",
-    "クレーム経験",
-  ];
-  const ALLOWED_STATUS = ["new", "active", "vip", "follow_up", "closed"];
-
   const payload: Record<string, unknown> = {};
   if (body.displayName !== undefined) {
-    if (typeof body.displayName === "string" && body.displayName.length <= 80) {
-      payload.display_name = body.displayName;
+    if (typeof body.displayName !== "string" || body.displayName.length > 80) {
+      return NextResponse.json({ error: "displayName too long" }, { status: 400 });
     }
+    payload.display_name = body.displayName;
   }
-  if (body.tags !== undefined && Array.isArray(body.tags)) {
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) {
+      return NextResponse.json({ error: "tags must be array" }, { status: 400 });
+    }
     payload.tags = body.tags
       .filter((tag) => ALLOWED_TAGS.includes(tag))
       .slice(0, 6);
   }
-  if (body.status !== undefined && ALLOWED_STATUS.includes(body.status)) {
+  if (body.status !== undefined) {
+    if (!ALLOWED_STATUS.includes(body.status)) {
+      return NextResponse.json({ error: "status is invalid" }, { status: 400 });
+    }
     payload.status = body.status;
   }
   if (
@@ -121,21 +128,30 @@ export async function PATCH(
   }
   if (body.autoReplyEnabled !== undefined)
     payload.auto_reply_enabled = body.autoReplyEnabled;
-  if (
-    body.notes !== undefined &&
-    typeof body.notes === "string" &&
-    body.notes.length <= 2000
-  ) {
-    payload.notes = body.notes;
+  if (body.profileImageUrl !== undefined) {
+    const profileImageUrl = validateOptionalTextUrl(body.profileImageUrl, 500);
+    if (!profileImageUrl.ok) return profileImageUrl.response;
+    payload.profile_image_url = profileImageUrl.value;
   }
-  if (body.ageRange !== undefined) payload.age_range = body.ageRange;
-  if (body.gender !== undefined) payload.gender = body.gender;
-  if (
-    body.region !== undefined &&
-    typeof body.region === "string" &&
-    body.region.length <= 50
-  ) {
-    payload.region = body.region;
+  if (body.notes !== undefined) {
+    const notes = validateOptionalText(body.notes, "notes", 2000);
+    if (!notes.ok) return notes.response;
+    payload.notes = notes.value;
+  }
+  if (body.ageRange !== undefined) {
+    const ageRange = validateOptionalEnum(body.ageRange, "ageRange", ALLOWED_AGE_RANGES);
+    if (!ageRange.ok) return ageRange.response;
+    payload.age_range = ageRange.value;
+  }
+  if (body.gender !== undefined) {
+    const gender = validateOptionalEnum(body.gender, "gender", ALLOWED_GENDERS);
+    if (!gender.ok) return gender.response;
+    payload.gender = gender.value;
+  }
+  if (body.region !== undefined) {
+    const region = validateOptionalText(body.region, "region", 50);
+    if (!region.ok) return region.response;
+    payload.region = region.value;
   }
 
   const { data, error } = await sb
@@ -184,5 +200,66 @@ function rowToCustomer(row: CustomerRow): Customer {
     ageRange: row.age_range ?? undefined,
     gender: row.gender ?? undefined,
     region: row.region ?? undefined,
+  };
+}
+
+function validateOptionalText(
+  value: unknown,
+  field: string,
+  maxLength: number,
+):
+  | { ok: true; value: string | undefined }
+  | { ok: false; response: NextResponse } {
+  if (value === null) return { ok: true, value: undefined };
+  if (typeof value !== "string" || value.length > maxLength) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: `${field} must be a string up to ${maxLength} chars` },
+        { status: 400 },
+      ),
+    };
+  }
+  return { ok: true, value };
+}
+
+function validateOptionalTextUrl(
+  value: unknown,
+  maxLength: number,
+):
+  | { ok: true; value: string | undefined }
+  | { ok: false; response: NextResponse } {
+  const text = validateOptionalText(value, "profileImageUrl", maxLength);
+  if (!text.ok || !text.value) return text;
+  if (text.value.startsWith("/")) return text;
+  try {
+    const url = new URL(text.value);
+    if (url.protocol === "http:" || url.protocol === "https:") return text;
+  } catch {
+    // handled below
+  }
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: "profileImageUrl must be http(s) or relative path" },
+      { status: 400 },
+    ),
+  };
+}
+
+function validateOptionalEnum<T extends readonly string[]>(
+  value: unknown,
+  field: string,
+  allowed: T,
+):
+  | { ok: true; value: T[number] | undefined }
+  | { ok: false; response: NextResponse } {
+  if (value === null) return { ok: true, value: undefined };
+  if (typeof value === "string" && allowed.includes(value)) {
+    return { ok: true, value };
+  }
+  return {
+    ok: false,
+    response: NextResponse.json({ error: `${field} is invalid` }, { status: 400 }),
   };
 }

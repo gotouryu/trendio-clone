@@ -48,6 +48,15 @@ async function readKey(key: string) {
 
 async function incrementKey(key: string) {
   const sb = createSupabaseAdmin();
+  const { error: rpcError } = await sb.rpc("record_login_attempt_rate_limit", {
+    p_key: key,
+    p_window_sec: WINDOW_SEC,
+  });
+  if (!rpcError) return;
+  if (process.env.NODE_ENV === "production") {
+    console.warn("[auth login] atomic rate limit rpc unavailable");
+  }
+
   const current = await readKey(key);
   const ts = nowIso();
 

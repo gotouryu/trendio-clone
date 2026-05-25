@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newCred, setNewCred] = useState<{ email: string; password: string } | null>(null);
+  const [busyCustomerId, setBusyCustomerId] = useState<string | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -101,38 +102,50 @@ export default function AdminPage() {
   }
 
   async function suspendResume(id: string, current: string) {
+    if (busyCustomerId) return;
     const action = current === "suspended" ? "resume" : "suspend";
-    const res = await fetch(`/api/admin/customers/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    if (!res.ok) {
-      toast(t("admin.toast.opFail"), "error");
-      return;
+    setBusyCustomerId(id);
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        toast(t("admin.toast.opFail"), "error");
+        return;
+      }
+      toast(
+        action === "suspend"
+          ? t("admin.toast.suspended")
+          : t("admin.toast.resumed"),
+        "success",
+      );
+      await fetchCustomers();
+    } finally {
+      setBusyCustomerId(null);
     }
-    toast(
-      action === "suspend"
-        ? t("admin.toast.suspended")
-        : t("admin.toast.resumed"),
-      "success",
-    );
-    fetchCustomers();
   }
 
-  async function resetPassword(id: string, email: string) {
-    if (!confirm(t("admin.confirmResetPassword", { email }))) return;
-    const res = await fetch(`/api/admin/customers/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reset-password" }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      toast(data.error ?? t("admin.toast.resetFail"), "error");
-      return;
+  async function resetPassword(id: string, companyName: string) {
+    if (busyCustomerId) return;
+    if (!confirm(t("admin.confirmResetPassword", { email: companyName }))) return;
+    setBusyCustomerId(id);
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset-password" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error ?? t("admin.toast.resetFail"), "error");
+        return;
+      }
+      setNewCred({ email: data.email ?? companyName, password: data.newPassword });
+    } finally {
+      setBusyCustomerId(null);
     }
-    setNewCred({ email, password: data.newPassword });
   }
 
   function copyAll(creds: { email: string; password: string }) {
@@ -245,8 +258,10 @@ export default function AdminPage() {
                   </td>
                 </tr>
               ) : (
-                customers.map((c) => (
-                  <tr key={c.id} className="border-t border-gray-100 dark:border-gray-700">
+                customers.map((c) => {
+                  const isBusy = busyCustomerId === c.id;
+                  return (
+                  <tr key={c.id} className="border-t border-gray-100 dark:border-gray-700" aria-busy={isBusy}>
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{c.company_name}</td>
                     <td className="px-4 py-3">
                       {c.status === "suspended" ? (
@@ -263,15 +278,17 @@ export default function AdminPage() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => suspendResume(c.id, c.status)}
-                          className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${c.status === "suspended" ? "text-emerald-500" : "text-amber-500"}`}
+                          disabled={!!busyCustomerId}
+                          className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed ${c.status === "suspended" ? "text-emerald-500" : "text-amber-500"}`}
                           title={c.status === "suspended" ? t("admin.row.titleResume") : t("admin.row.titleSuspend")}
                           aria-label={c.status === "suspended" ? t("admin.row.titleResume") : t("admin.row.titleSuspend")}
                         >
-                          {c.status === "suspended" ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                          {isBusy ? <RefreshCw className="w-4 h-4 animate-spin" /> : c.status === "suspended" ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => resetPassword(c.id, c.company_name)}
-                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-500"
+                          disabled={!!busyCustomerId}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-blue-500"
                           title={t("admin.row.titleResetPassword")}
                           aria-label={t("admin.row.titleResetPassword")}
                         >
@@ -280,7 +297,8 @@ export default function AdminPage() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -429,11 +447,11 @@ function AddCustomerModal({
   // Escape キーで閉じる
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !submitting) onClose();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, submitting]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -451,7 +469,7 @@ function AddCustomerModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-modal-title"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !submitting && onClose()}
     >
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
         <h3
@@ -475,6 +493,7 @@ function AddCustomerModal({
               autoFocus
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
+              maxLength={80}
               placeholder={t("admin.modal.companyPlaceholder")}
               className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
             />
@@ -494,6 +513,7 @@ function AddCustomerModal({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              maxLength={200}
               placeholder={t("admin.modal.emailPlaceholder")}
               className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
             />
@@ -505,6 +525,7 @@ function AddCustomerModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={submitting}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm"
             >
               {t("admin.modal.cancel")}

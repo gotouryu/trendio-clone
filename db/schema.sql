@@ -250,6 +250,111 @@ create index if not exists login_attempt_rate_limits_updated_at_idx
   on public.login_attempt_rate_limits (updated_at);
 
 -- ============================================================
+-- 7c. rate_limits — authenticated API attack guard
+-- ============================================================
+create table if not exists public.rate_limits (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null,
+  window_started_at timestamptz not null default now(),
+  count int not null default 0,
+  primary key (user_id, kind)
+);
+
+alter table public.rate_limits enable row level security;
+
+drop policy if exists "rate_limits: own rows" on public.rate_limits;
+create policy "rate_limits: own rows" on public.rate_limits
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create or replace function public.consume_rate_limit(
+  p_user_id uuid,
+  p_kind text,
+  p_window_sec int,
+  p_max_in_window int
+)
+returns table (allowed boolean, retry_after_sec int)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_started timestamptz;
+begin
+  insert into public.rate_limits (user_id, kind, window_started_at, count)
+  values (p_user_id, p_kind, now(), 0)
+  on conflict (user_id, kind) do nothing;
+
+  update public.rate_limits
+     set window_started_at = case
+           when extract(epoch from (now() - window_started_at)) >= p_window_sec
+           then now()
+           else window_started_at
+         end,
+         count = case
+           when extract(epoch from (now() - window_started_at)) >= p_window_sec
+           then 1
+           else count + 1
+         end
+   where user_id = p_user_id
+     and kind = p_kind
+     and (
+       extract(epoch from (now() - window_started_at)) >= p_window_sec
+       or count < p_max_in_window
+     )
+   returning true, 0 into allowed, retry_after_sec;
+
+  if allowed is true then
+    return next;
+    return;
+  end if;
+
+  select window_started_at
+    into v_started
+    from public.rate_limits
+   where user_id = p_user_id
+     and kind = p_kind;
+
+  allowed := false;
+  retry_after_sec := greatest(
+    1,
+    ceil(p_window_sec - extract(epoch from (now() - v_started)))::int
+  );
+  return next;
+end;
+$$;
+
+grant execute on function public.consume_rate_limit(uuid, text, int, int) to service_role;
+
+create or replace function public.record_login_attempt_rate_limit(
+  p_key text,
+  p_window_sec int
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.login_attempt_rate_limits (key, window_started_at, count, updated_at)
+  values (p_key, now(), 1, now())
+  on conflict (key) do update
+    set window_started_at = case
+          when extract(epoch from (now() - login_attempt_rate_limits.window_started_at)) >= p_window_sec
+          then now()
+          else login_attempt_rate_limits.window_started_at
+        end,
+        count = case
+          when extract(epoch from (now() - login_attempt_rate_limits.window_started_at)) >= p_window_sec
+          then 1
+          else login_attempt_rate_limits.count + 1
+        end,
+        updated_at = now();
+end;
+$$;
+
+grant execute on function public.record_login_attempt_rate_limit(text, int) to service_role;
+
+-- ============================================================
 -- 8. customers — 顧客カルテ(共P-01 顧客行動履歴・CRM)
 -- ============================================================
 create table if not exists public.customers (
