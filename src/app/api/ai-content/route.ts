@@ -200,29 +200,243 @@ function asObject(v: unknown): Record<string, unknown> {
     : {};
 }
 
-function compactText(v: unknown, max = 300): string {
-  return String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+const PLACEHOLDER_PATTERNS = [
+  /〇〇/,
+  /○○/,
+  /◯◯/,
+  /\bX{2,}\b/i,
+  /〜〜/,
+  /\[(?:商品名|サービス名|会社名|店名|メニュー名|地域名|地名|ターゲット|CTA|URL)[^\]]*\]/,
+  /\{(?:商品名|サービス名|会社名|店名|メニュー名|地域名|地名|ターゲット|CTA|URL)[^}]*\}/,
+  /未定/,
+  /仮置き?/,
+];
+
+const ASSERTIVE_TERMS = [
+  "絶対",
+  "必ず",
+  "誰でも",
+  "確実",
+  "保証",
+  "No.1",
+  "日本一",
+  "業界初",
+  "最安",
+  "最高",
+];
+
+const REGION_TERMS = [
+  "東京",
+  "大阪",
+  "渋谷",
+  "新宿",
+  "銀座",
+  "横浜",
+  "名古屋",
+  "福岡",
+  "札幌",
+  "京都",
+  "神戸",
+];
+
+const INDUSTRY_RISK_TERMS: Array<{ match: string[]; terms: string[] }> = [
+  {
+    match: ["エステ", "美容医療", "健康", "整体", "整骨", "鍼灸"],
+    terms: ["治る", "完治", "即効", "改善率", "痛みが消える", "医師監修"],
+  },
+  {
+    match: ["教育", "スクール"],
+    terms: ["必ず合格", "確実に上達", "短期間で確実"],
+  },
+  {
+    match: ["士業", "専門サービス"],
+    terms: ["絶対解決", "必ず得する", "成果保証"],
+  },
+  {
+    match: ["不動産", "住宅"],
+    terms: ["利回り保証", "必ず売れる", "資産価値が上がる"],
+  },
+  {
+    match: ["BtoB"],
+    terms: ["完全自動化", "%削減", "導入社数"],
+  },
+];
+
+function uniqueTerms(terms: string[]): string[] {
+  return Array.from(new Set(terms.map((term) => term.trim()).filter((term) => term.length >= 2)));
 }
 
-function lineText(v: unknown, max = 500): string {
-  return String(v ?? "").trim().slice(0, max);
+function avoidExpressionTerms(brief: ScriptBrief): string[] {
+  const base = brief.avoidExpressions
+    .split(/[、,\n]/)
+    .map((term) => term.trim())
+    .filter(Boolean);
+  const expanded = base.flatMap((term) => {
+    const terms = [term];
+    if (term.endsWith("営業")) terms.push(term.replace(/営業$/, ""));
+    if (term.endsWith("表現")) terms.push(term.replace(/表現$/, ""));
+    return terms;
+  });
+  return uniqueTerms(expanded);
 }
 
-function normalizePlans(raw: unknown): PlanIdea[] {
+function briefAllowedFactsText(brief: ScriptBrief): string {
+  return [
+    brief.industry,
+    brief.businessType,
+    brief.target,
+    brief.theme,
+    brief.trendReference,
+    brief.goal,
+    brief.sellingPoints,
+    brief.tone,
+    brief.availableAssets,
+    brief.mustInclude,
+    brief.referenceUrl,
+    brief.cta,
+    brief.companyName,
+    brief.companyUrl,
+    brief.platform,
+  ].join("\n");
+}
+
+function assertNoQualityIssues(text: string, brief: ScriptBrief) {
+  const source = briefAllowedFactsText(brief);
+  for (const pattern of PLACEHOLDER_PATTERNS) {
+    if (pattern.test(text)) throw new Error("quality gate failed: placeholder");
+  }
+  for (const term of avoidExpressionTerms(brief)) {
+    if (text.includes(term)) {
+      throw new Error(`quality gate failed: avoid expression ${term}`);
+    }
+  }
+  for (const term of ASSERTIVE_TERMS) {
+    if (text.includes(term) && !source.includes(term)) {
+      throw new Error(`quality gate failed: assertive term ${term}`);
+    }
+  }
+  for (const term of REGION_TERMS) {
+    if (text.includes(term) && !source.includes(term)) {
+      throw new Error(`quality gate failed: unprovided region ${term}`);
+    }
+  }
+  for (const rule of INDUSTRY_RISK_TERMS) {
+    if (!rule.match.some((m) => brief.industry.includes(m))) continue;
+    for (const term of rule.terms) {
+      if (text.includes(term) && !source.includes(term)) {
+        throw new Error(`quality gate failed: industry risk term ${term}`);
+      }
+    }
+  }
+}
+
+function assertPlanQuality(plans: PlanIdea[], brief: ScriptBrief) {
+  const text = JSON.stringify(plans);
+  assertNoQualityIssues(text, brief);
+  const joinedAngles = plans.map((p) => p.angle.toLowerCase()).join(" ");
+  const required = ["trend", "buzz", "save", "trust", "original"];
+  const ja = ["トレンド", "バズ", "保存", "信頼", "新規"];
+  required.forEach((key, i) => {
+    if (!joinedAngles.includes(key) && !plans.some((p) => p.angle.includes(ja[i]))) {
+      throw new Error(`quality gate failed: missing angle ${key}`);
+    }
+  });
+}
+
+function assertScriptQuality(script: GeneratedScript, brief: ScriptBrief) {
+  assertNoQualityIssues(JSON.stringify(script), brief);
+}
+
+function replaceAvoidExpressions(text: string, brief: ScriptBrief): string {
+  return avoidExpressionTerms(brief).reduce((current, term) => {
+    const replacement = term === "深夜" ? "夜" : "";
+    return current.split(term).join(replacement);
+  }, text);
+}
+
+function cleanGeneratedText(v: unknown, max: number, brief?: ScriptBrief): string {
+  const cleaned = String(v ?? "")
+    .replace(/一人[〇○◯]{2,}/g, "一人利用")
+    .replace(/[〇○◯]{2,}/g, "内容")
+    .replace(/\bX{2,}\b/gi, "内容")
+    .replace(/〜〜/g, "")
+    .replace(/\[(?:商品名|サービス名|会社名|店名|メニュー名|地域名|地名|ターゲット|CTA|URL)[^\]]*\]/g, "内容")
+    .replace(/\{(?:商品名|サービス名|会社名|店名|メニュー名|地域名|地名|ターゲット|CTA|URL)[^}]*\}/g, "内容")
+    .replace(/\s+/g, " ")
+    .trim()
+  const withoutAvoid = brief ? replaceAvoidExpressions(cleaned, brief) : cleaned;
+  return withoutAvoid.replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function cleanGeneratedLine(v: unknown, max: number, brief?: ScriptBrief): string {
+  return cleanGeneratedText(v, max, brief).replace(/\\n/g, "\n");
+}
+
+function generationErrorCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota")) {
+    return "gemini_quota_exhausted";
+  }
+  if (message.includes("quality gate failed")) {
+    return message.slice(0, 180);
+  }
+  if (message.includes("JSON")) {
+    return "gemini_json_parse_failed";
+  }
+  return "gemini_generation_failed";
+}
+
+async function generatePlansOnce(userPrompt: string, brief: ScriptBrief): Promise<PlanIdea[]> {
+  const raw = await runGemini({
+    system: SYSTEM_PLANS,
+    user: userPrompt,
+    maxTokens: 3072,
+    json: true,
+    responseJsonSchema: PLAN_SCHEMA,
+  });
+  const plans = normalizePlans(JSON.parse(stripFence(raw)), brief);
+  if (plans.length < 5) {
+    throw new Error("Gemini returned too few valid plans");
+  }
+  assertPlanQuality(plans, brief);
+  return plans;
+}
+
+async function generateScriptOnce(
+  userPrompt: string,
+  plan: PlanIdea,
+  brief: ScriptBrief,
+): Promise<GeneratedScript> {
+  const raw = await runGemini({
+    system: SYSTEM_SCRIPT,
+    user: userPrompt,
+    maxTokens: 4096,
+    json: true,
+    responseJsonSchema: SCRIPT_SCHEMA,
+  });
+  const script = normalizeScript(JSON.parse(stripFence(raw)), plan, brief);
+  if (!script) {
+    throw new Error("Gemini returned no valid scenes");
+  }
+  assertScriptQuality(script, brief);
+  return script;
+}
+
+function normalizePlans(raw: unknown, brief: ScriptBrief): PlanIdea[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((item, i) => {
       const p = asObject(item);
       return {
         id: `plan-${Date.now()}-${i}`,
-        angle: compactText(p.angle, 30),
-        title: compactText(p.title, 40),
-        concept: compactText(p.concept, 120),
-        hook: compactText(p.hook, 90),
-        outline: lineText(p.outline, 500),
-        trendFit: compactText(p.trendFit, 120),
-        buzzReason: compactText(p.buzzReason, 120),
-        recommendedFor: compactText(p.recommendedFor, 120),
+        angle: cleanGeneratedText(p.angle, 30, brief),
+        title: cleanGeneratedText(p.title, 40, brief),
+        concept: cleanGeneratedText(p.concept, 120, brief),
+        hook: cleanGeneratedText(p.hook, 90, brief),
+        outline: cleanGeneratedLine(p.outline, 500, brief),
+        trendFit: cleanGeneratedText(p.trendFit, 120, brief),
+        buzzReason: cleanGeneratedText(p.buzzReason, 120, brief),
+        recommendedFor: cleanGeneratedText(p.recommendedFor, 120, brief),
       };
     })
     .filter((p) => p.angle && p.title && p.concept && p.hook && p.outline)
@@ -258,10 +472,10 @@ function normalizeScript(raw: unknown, plan: PlanIdea, brief: ScriptBrief): Gene
       return {
         sceneNo: Number(s.sceneNo) || i + 1,
         durationSec: Math.max(0, Math.round(Number(s.durationSec) || 0)),
-        visual: lineText(s.visual, 500),
-        narration: brief.hasNarration ? lineText(s.narration, 500) : "",
-        caption: lineText(s.caption, 220),
-        se: lineText(s.se, 160),
+        visual: cleanGeneratedLine(s.visual, 500, brief),
+        narration: brief.hasNarration ? cleanGeneratedLine(s.narration, 500, brief) : "",
+        caption: cleanGeneratedLine(s.caption, 220, brief),
+        se: cleanGeneratedLine(s.se, 160, brief),
       };
     })
     .filter((s) => s.visual && s.caption);
@@ -279,17 +493,17 @@ function normalizeScript(raw: unknown, plan: PlanIdea, brief: ScriptBrief): Gene
 
   const rawHashtags = Array.isArray(parsed.hashtags) ? parsed.hashtags : [];
   const hashtags = rawHashtags
-    .map((h) => compactText(h, 30).replace(/^#/, ""))
+    .map((h) => cleanGeneratedText(h, 30, brief).replace(/^#/, ""))
     .filter(Boolean)
     .slice(0, 6);
 
   return {
     id: `script-${Date.now()}`,
-    planTitle: compactText(parsed.planTitle, 60) || plan.title,
+    planTitle: cleanGeneratedText(parsed.planTitle, 60, brief) || plan.title,
     totalDurationSec: brief.durationSec || totalDurationSec,
     scenes,
     hashtags: hashtags.length ? hashtags : ["リール動画", "SNS運用", "動画台本"],
-    cta: compactText(parsed.cta, 120) || brief.cta || "詳しくはプロフィールから",
+    cta: cleanGeneratedText(parsed.cta, 120, brief) || brief.cta || "詳しくはプロフィールから",
   };
 }
 
@@ -436,15 +650,27 @@ const SYSTEM_PLANS = `<role>
 <industry_context>
 業種・業態は最優先の文脈として扱う。同じターゲット・投稿目的でも、業種ごとに視聴者の悩み、信用の作り方、撮影素材、CTA導線、避けるべき表現を変える。
 - 美容室・サロン: 似合わせ、仕上がり、再現性、相談しやすさ、予約導線を重視。効果断定や過度なBefore/Afterに寄せすぎない。
-- エステ・美容医療・健康系: 不安解消、安心感、継続しやすさ、相談導線を重視。治る、痩せる保証、医学的断定、過度な効能表現は禁止。
-- 整体・整骨・鍼灸: 悩み共感、生活習慣、来店ハードル低下、初回相談を重視。完治、即効、医療効果の断定は禁止。
-- 飲食: 食欲、利用シーン、限定感、写真映え、来店理由を重視。味や人気を捏造しない。
+- エステ・美容医療・健康系: 不安解消、安心感、継続しやすさ、相談導線を重視。治る、痩せる保証、医学的断定、過度な効能表現、ビフォーアフターの効果保証は禁止。
+- 整体・整骨・鍼灸: 悩み共感、生活習慣、来店ハードル低下、初回相談を重視。治る、完治、即効、改善率、痛みが消える、医師監修、医療効果の断定は禁止。
+- 飲食: 食欲、利用シーン、限定感、写真映え、来店理由を重視。味、人気、行列、口コミ評価、地名、地域ハッシュタグを捏造しない。
 - 士業・専門サービス: 分かりやすさ、不安解消、信頼、相談導線を重視。必ず得する、絶対解決、成果保証は禁止。
 - 不動産・住宅: 暮らしの具体像、比較ポイント、失敗回避、内見・相談導線を重視。未入力の価格、利回り、施工実績は作らない。
 - 教育・スクール: 成長過程、講師の安心感、続けやすさ、体験申込を重視。必ず合格、確実に上達などの保証は禁止。
 - EC・物販: 使用シーン、選び方、比較、開封、悩み解決、購入導線を重視。実在しないレビュー、ランキング、受賞歴は作らない。
 - BtoBサービス: 業務課題、時間削減、属人化解消、導入後の変化、資料請求を重視。未入力の削減率や導入実績は作らない。
 </industry_context>
+
+<hard_ng_rules>
+- 伏せ字、穴埋め、仮置き表現は禁止: 〇〇、○○、◯◯、XX、XXX、〜〜、[商品名]、{サービス名}、未定、仮、など。
+- 入力されていない地名、地域名、駅名、受賞歴、ランキング、口コミ、導入社数、削減率、満足度、実績年数、価格、人数、数量を作らない。
+- 入力されていない地域ハッシュタグを作らない。例: 東京グルメ、大阪美容、渋谷ランチ等。
+- 会社名、商品名、サービス名は入力された表記をそのまま使う。ひらがな、カタカナ、ローマ字、略称へ勝手に変換しない。
+- 商品名やメニュー名が未入力の場合、伏せ字にせず「新メニュー」「温かい一品」「サービス内容」など入力済み情報だけで書く。
+- 避けたい表現に含まれる語句は、引用、例示、強調、ハッシュタグでも使わない。
+- 「絶対」「必ず」「誰でも」「確実」「保証」「No.1」「日本一」「業界初」「最安」「最高」など、根拠が必要な断定・最上級は入力に根拠がない限り使わない。
+- 投稿テーマの範囲を勝手に広げない。例: 夜限定を深夜、相談を診断、効率化を完全自動化へ言い換えない。
+- 参考トレンドは型だけを借りる。元投稿の事実、数字、人物、地名、ブランド、コメント数、再生数は作らない。
+</hard_ng_rules>
 
 <quality_bar>
 - 各案で「なぜ見られるか」「なぜ反応されるか」「なぜ次の行動へ進むか」が読み取れる
@@ -455,6 +681,17 @@ const SYSTEM_PLANS = `<role>
 - recommendedForには、どの目的や状況で選ぶべき案かを書く
 - テンプレ感の強い言葉だけで埋めず、業種・業態・入力テーマ・訴求ポイント・使える素材に固有の要素を使う
 </quality_bar>
+
+<self_check_before_output>
+JSONを返す直前に、内部で次を確認してください。違反があれば出力前に修正してください。
+1. 5案が trend / buzz / save / trust / original に分かれている
+2. 伏せ字・仮置き・穴埋め表現がない
+3. 未入力の地名、数字、実績、口コミ、ランキング、効果を作っていない
+4. 業種別の危険表現を避けている
+5. 会社名・商品名・サービス名の表記を勝手に変えていない
+6. 各案の title / hook / outline が互いに似すぎていない
+7. 避けたい表現に含まれる語句を出していない
+</self_check_before_output>
 
 <output_fields>
 - angle: 企画タイプ(trend / buzz / save / trust / original の意味が分かる短い日本語)
@@ -485,6 +722,9 @@ const SYSTEM_PLANS = `<role>
 - 入力が薄い場合も一般論だけの企画名で逃げず、与えられた情報の範囲で視聴者の状況と見せ方を具体化する
 - 未入力の実績、数値、口コミ、制度、効果を事実のように捏造しない
 - 商品名や会社名がある場合は自然に扱い、押し売りだけの広告企画にしない
+- 伏せ字、仮置き、穴埋め表現を残さない
+- 入力された固有名詞の表記を改変しない
+- 避けたい表現に含まれる語句を引用や例示でも出さない
 - 動画の長さに収まる構成にする
 - 演者なし指定なら人物出演を前提にしない。ナレーションなし指定ならテロップ主体にする
 - 参考URLの中身を見た前提にしない。URLがある時も入力条件から企画を作る
@@ -540,6 +780,18 @@ const SYSTEM_SCRIPT = `<role>
 - 入力された使える素材がある場合は、撮れない素材を増やす前にそれを優先して構成する
 </scene_design>
 
+<hard_ng_rules>
+- 伏せ字、穴埋め、仮置き表現は禁止: 〇〇、○○、◯◯、XX、XXX、〜〜、[商品名]、{サービス名}、未定、仮、など。
+- 入力されていない地名、地域名、駅名、受賞歴、ランキング、口コミ、導入社数、削減率、満足度、実績年数、価格、人数、数量を作らない。
+- 入力されていない地域ハッシュタグを作らない。例: 東京グルメ、大阪美容、渋谷ランチ等。
+- 会社名、商品名、サービス名は入力された表記をそのまま使う。ひらがな、カタカナ、ローマ字、略称へ勝手に変換しない。
+- 商品名やメニュー名が未入力の場合、伏せ字にせず「新メニュー」「温かい一品」「サービス内容」など入力済み情報だけで書く。
+- 避けたい表現に含まれる語句は、引用、例示、強調、ハッシュタグでも使わない。
+- 「絶対」「必ず」「誰でも」「確実」「保証」「No.1」「日本一」「業界初」「最安」「最高」など、根拠が必要な断定・最上級は入力に根拠がない限り使わない。
+- 投稿テーマの範囲を勝手に広げない。例: 夜限定を深夜、相談を診断、効率化を完全自動化へ言い換えない。
+- 美容、健康、整体、整骨、鍼灸、教育、士業、金融、不動産では、効果保証、合格保証、収益保証、法的結果保証、医療効果の断定を避ける。
+</hard_ng_rules>
+
 <constraints>
 - 1シーンは2〜8秒を目安にし、全シーンの durationSec の合計を指定の動画の長さ(秒)に一致させる
 - 冒頭2秒で何が得られる動画か分かる構成にする
@@ -550,8 +802,22 @@ const SYSTEM_SCRIPT = `<role>
 - ナレーションなし指定なら narration は必ず空文字 "" にし、caption だけで意味が通るようにする
 - visual は「何を撮るか」が分かる具体表現にする。抽象語だけにしない
 - 入力されていない数値、実績、効能、口コミを事実として作らない
+- 伏せ字、仮置き、穴埋め表現を残さない
+- 入力された固有名詞の表記を改変しない
+- 避けたい表現に含まれる語句を引用や例示でも出さない
 - 最後のシーンに必ずCTAを入れる
 </constraints>
+
+<self_check_before_output>
+JSONを返す直前に、内部で次を確認してください。違反があれば出力前に修正してください。
+1. 全シーンの合計秒数が指定尺に一致する
+2. 伏せ字・仮置き・穴埋め表現がない
+3. 未入力の地名、数字、実績、口コミ、ランキング、効果を作っていない
+4. 業種別の危険表現を避けている
+5. 会社名・商品名・サービス名の表記を勝手に変えていない
+6. hashtags に未入力の地域名や根拠不明の人気表現がない
+7. 避けたい表現に含まれる語句を出していない
+</self_check_before_output>
 
 <output_rule>
 出力はJSONオブジェクトのみ。前置き、解説、採点、思考過程、コードフェンスは返さない。
@@ -650,17 +916,7 @@ ${briefBlock(brief)}
 各案は、選んだ後に別々の台本へ展開できるように、見せ方、撮影素材、フック、CTAまで差を作ってください。
 </request>`;
     try {
-      const raw = await runGemini({
-        system: SYSTEM_PLANS,
-        user: userPrompt,
-        maxTokens: 3072,
-        json: true,
-        responseJsonSchema: PLAN_SCHEMA,
-      });
-      const plans = normalizePlans(JSON.parse(stripFence(raw)));
-      if (plans.length < 5) {
-        throw new Error("Gemini returned too few valid plans");
-      }
+      const plans = await generatePlansOnce(userPrompt, brief);
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
@@ -669,14 +925,16 @@ ${briefBlock(brief)}
         mock: false,
       });
       return NextResponse.json({ plans, mock: false, usage: quota.usage });
-    } catch {
+    } catch (error) {
+      const errorCode = generationErrorCode(error);
+      console.warn("[ai-content] plans fallback", { errorCode });
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
         status: "fallback",
         counted: true,
         mock: true,
-        errorCode: "gemini_response_parse_failed",
+        errorCode,
       });
       return NextResponse.json({
         plans: mockPlanIdeas.map((p) => ({ ...p, id: `fallback-${Date.now()}-${p.id}` })),
@@ -747,17 +1005,7 @@ ${briefBlock(brief)}
 投稿目的とCTAが自然につながるように、CTA直前までに視聴者が行動する理由を作ってください。
 </request>`;
   try {
-    const raw = await runGemini({
-      system: SYSTEM_SCRIPT,
-      user: userPrompt,
-      maxTokens: 4096,
-      json: true,
-      responseJsonSchema: SCRIPT_SCHEMA,
-    });
-    const script = normalizeScript(JSON.parse(stripFence(raw)), plan, brief);
-    if (!script) {
-      throw new Error("Gemini returned no valid scenes");
-    }
+    const script = await generateScriptOnce(userPrompt, plan, brief);
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
@@ -766,14 +1014,16 @@ ${briefBlock(brief)}
       mock: false,
     });
     return NextResponse.json({ script, mock: false, usage: quota.usage });
-  } catch {
+  } catch (error) {
+    const errorCode = generationErrorCode(error);
+    console.warn("[ai-content] script fallback", { errorCode });
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
       status: "fallback",
       counted: true,
       mock: true,
-      errorCode: "gemini_response_parse_failed",
+      errorCode,
     });
     return NextResponse.json({
       script: { ...mockGeneratedScript, id: `fallback-${Date.now()}`, planTitle: plan.title },
