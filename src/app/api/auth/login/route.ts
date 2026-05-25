@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { assertSameOrigin } from "@/lib/csrf";
+import {
+  checkLoginRateLimit,
+  clearLoginRateLimit,
+  recordFailedLogin,
+} from "@/lib/loginRateLimit";
 
 export const runtime = "nodejs";
 
@@ -45,6 +50,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: LOGIN_ERROR }, { status: 401 });
   }
 
+  const ip = clientIp(req);
+  const rate = await checkLoginRateLimit(email, ip);
+  if (!rate.allowed) {
+    await constantDelay(startedAt);
+    return NextResponse.json(
+      {
+        error: "ログイン試行が多すぎます。しばらく時間をおいて再度お試しください",
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec ?? 60) },
+      },
+    );
+  }
+
   const sb = await createSupabaseServer();
   if (!sb) {
     return NextResponse.json(
@@ -57,8 +77,9 @@ export async function POST(req: NextRequest) {
   if (error || !data.user) {
     console.warn("[auth login] failed", {
       emailHash: await hashEmail(email),
-      ip: clientIp(req),
+      ip,
     });
+    await recordFailedLogin(email, ip);
     await constantDelay(startedAt);
     return NextResponse.json({ error: LOGIN_ERROR }, { status: 401 });
   }
@@ -86,6 +107,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    await clearLoginRateLimit(email, ip);
     await sb.from("login_events").insert({
       user_id: data.user.id,
       user_agent: req.headers.get("user-agent"),

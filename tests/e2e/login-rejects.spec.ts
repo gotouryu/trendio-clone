@@ -9,3 +9,21 @@ test("wrong credentials show error", async ({ page }) => {
   await page.getByRole("button", { name: /Sign In/i }).click();
   await expect(page.getByText(/正しくありません/)).toBeVisible({ timeout: 5000 });
 });
+
+test("login API rate limits repeated failures", async ({ request }) => {
+  const email = `rate-limit-${Date.now()}@example.com`;
+  let lastStatus = 0;
+
+  for (let i = 0; i < 6; i += 1) {
+    const res = await request.post("/api/auth/login", {
+      headers: {
+        Origin: "http://localhost:3000",
+        "Content-Type": "application/json",
+      },
+      data: { email, password: `WrongPass-${i}!` },
+    });
+    lastStatus = res.status();
+  }
+
+  expect(lastStatus).toBe(429);
+});

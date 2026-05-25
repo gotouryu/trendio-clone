@@ -230,6 +230,26 @@ create policy "login_events: select own or admin"
   );
 
 -- ============================================================
+-- 7b. login_attempt_rate_limits — unauthenticated login attack guard
+-- ============================================================
+create table if not exists public.login_attempt_rate_limits (
+  key text primary key,
+  window_started_at timestamptz not null default now(),
+  count int not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.login_attempt_rate_limits enable row level security;
+
+drop policy if exists "login_attempt_rate_limits: no client access" on public.login_attempt_rate_limits;
+create policy "login_attempt_rate_limits: no client access"
+  on public.login_attempt_rate_limits
+  for all using (false) with check (false);
+
+create index if not exists login_attempt_rate_limits_updated_at_idx
+  on public.login_attempt_rate_limits (updated_at);
+
+-- ============================================================
 -- 8. customers — 顧客カルテ(共P-01 顧客行動履歴・CRM)
 -- ============================================================
 create table if not exists public.customers (
