@@ -84,11 +84,6 @@ async function consumeMonthlyUsage(userId: string): Promise<
   };
 }
 
-async function ensureMonthlyUsageAvailable(userId: string): Promise<UsageInfo | null> {
-  const usage = await getMonthlyUsage(userId);
-  return usage.remaining > 0 ? usage : null;
-}
-
 function quotaExceededResponse(usage: UsageInfo) {
   return NextResponse.json(
     {
@@ -972,9 +967,8 @@ export async function POST(req: NextRequest) {
         usage,
       });
     }
-    const availableUsage = await ensureMonthlyUsageAvailable(auth.userId);
-    if (!availableUsage) {
-      const usage = await getMonthlyUsage(auth.userId);
+    const quota = await consumeMonthlyUsage(auth.userId);
+    if (!quota.allowed) {
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
@@ -983,7 +977,7 @@ export async function POST(req: NextRequest) {
         mock: false,
         errorCode: "monthly_quota_exceeded",
       });
-      return quotaExceededResponse(usage);
+      return quotaExceededResponse(quota.usage);
     }
     const userPrompt = `<user_context>
 ${briefBlock(brief)}
@@ -996,18 +990,6 @@ ${briefBlock(brief)}
 </request>`;
     try {
       const plans = await generatePlansOnce(userPrompt, brief);
-      const quota = await consumeMonthlyUsage(auth.userId);
-      if (!quota.allowed) {
-        await logAiContentGeneration({
-          userId: auth.userId,
-          mode: "plans",
-          status: "blocked_quota",
-          counted: false,
-          mock: false,
-          errorCode: "monthly_quota_exceeded_after_generation",
-        });
-        return quotaExceededResponse(quota.usage);
-      }
       await logAiContentGeneration({
         userId: auth.userId,
         mode: "plans",
@@ -1023,15 +1005,14 @@ ${briefBlock(brief)}
         userId: auth.userId,
         mode: "plans",
         status: "fallback",
-        counted: false,
+        counted: true,
         mock: true,
         errorCode,
       });
-      const usage = await getMonthlyUsage(auth.userId);
       return NextResponse.json({
         plans: mockPlanIdeas.map((p) => ({ ...p, id: `fallback-${Date.now()}-${p.id}` })),
         mock: true,
-        usage,
+        usage: quota.usage,
         warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
       });
     }
@@ -1063,9 +1044,8 @@ ${briefBlock(brief)}
     });
   }
 
-  const availableUsage = await ensureMonthlyUsageAvailable(auth.userId);
-  if (!availableUsage) {
-    const usage = await getMonthlyUsage(auth.userId);
+  const quota = await consumeMonthlyUsage(auth.userId);
+  if (!quota.allowed) {
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
@@ -1074,7 +1054,7 @@ ${briefBlock(brief)}
       mock: false,
       errorCode: "monthly_quota_exceeded",
     });
-    return quotaExceededResponse(usage);
+    return quotaExceededResponse(quota.usage);
   }
 
   const userPrompt = `<selected_plan>
@@ -1099,18 +1079,6 @@ ${briefBlock(brief)}
 </request>`;
   try {
     const script = await generateScriptOnce(userPrompt, plan, brief);
-    const quota = await consumeMonthlyUsage(auth.userId);
-    if (!quota.allowed) {
-      await logAiContentGeneration({
-        userId: auth.userId,
-        mode: "script",
-        status: "blocked_quota",
-        counted: false,
-        mock: false,
-        errorCode: "monthly_quota_exceeded_after_generation",
-      });
-      return quotaExceededResponse(quota.usage);
-    }
     await logAiContentGeneration({
       userId: auth.userId,
       mode: "script",
@@ -1126,15 +1094,14 @@ ${briefBlock(brief)}
       userId: auth.userId,
       mode: "script",
       status: "fallback",
-      counted: false,
+      counted: true,
       mock: true,
       errorCode,
     });
-    const usage = await getMonthlyUsage(auth.userId);
     return NextResponse.json({
       script: { ...mockGeneratedScript, id: `fallback-${Date.now()}`, planTitle: plan.title },
       mock: true,
-      usage,
+      usage: quota.usage,
       warning: "Gemini応答の解析に失敗したため、デモ用Mockを表示しています",
     });
   }
