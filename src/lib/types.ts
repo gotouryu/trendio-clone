@@ -232,6 +232,7 @@ export type ScriptPlatform = "instagram" | "tiktok" | "all";
 export type ScriptBrief = {
   industry: string;        // 業種(美容、飲食、士業など)
   businessType: string;    // 業態(店舗型、オンライン、BtoBなど)
+  industryDetails: string; // 業種固有の条件(価格帯、許諾、法規制、対象範囲など)
   target: string;          // ターゲット(誰に向けた動画か)
   theme: string;           // 投稿テーマ
   trendReference: string;  // 参考にしたい流行・型・競合投稿の傾向

@@ -35,6 +35,17 @@ const INDUSTRY_OPTIONS = [
   "不動産・住宅",
   "教育・スクール",
   "EC・物販",
+  "採用・人材",
+  "宿泊・観光",
+  "フィットネス・ジム",
+  "クリニック・歯科",
+  "介護・福祉",
+  "リフォーム・工務店",
+  "自動車販売・整備",
+  "クリーニング・家事代行",
+  "ペット関連",
+  "冠婚葬祭",
+  "金融・保険",
   "BtoBサービス",
   "その他",
 ];
@@ -65,9 +76,105 @@ const TONE_OPTIONS = [
   "テンポ重視",
 ];
 
+const INDUSTRY_DETAIL_GUIDES: Array<{
+  match: string[];
+  label: string;
+  placeholder: string;
+}> = [
+  {
+    match: ["美容", "エステ", "健康", "整体", "整骨", "鍼灸", "クリニック", "歯科"],
+    label: "施術範囲、価格、予約条件、避けたい効果保証",
+    placeholder: "例: 施術名、価格、予約条件、撮影できる部位、効果を断定しない、Before/Afterは使わない",
+  },
+  {
+    match: ["飲食"],
+    label: "メニュー、価格、提供時間、撮影できる素材",
+    placeholder: "例: 商品名、税込価格、提供時間、店内撮影可、混雑する時間帯、予約導線",
+  },
+  {
+    match: ["士業", "金融", "保険"],
+    label: "相談範囲、対象者、言えない断定表現",
+    placeholder: "例: 初回相談の範囲、対象者、料金、税金・補助金・運用成果は断定しない",
+  },
+  {
+    match: ["不動産", "住宅", "リフォーム", "工務店"],
+    label: "エリア、価格帯、工期、現地確認が必要な条件",
+    placeholder: "例: 対象エリア、価格帯、物件種別、施工範囲、工期目安、補助金や性能は未確認なら言わない",
+  },
+  {
+    match: ["教育", "スクール"],
+    label: "対象レベル、体験内容、成果保証の回避",
+    placeholder: "例: 対象年齢、初心者向け、体験授業の流れ、合格や上達を保証しない",
+  },
+  {
+    match: ["EC", "物販"],
+    label: "商品仕様、価格、在庫、レビュー表現の扱い",
+    placeholder: "例: 商品名、税込価格、素材、配送条件、在庫数やレビューは入力がある時だけ使う",
+  },
+  {
+    match: ["採用", "人材"],
+    label: "職種、働き方、応募条件、社員コメントの許諾",
+    placeholder: "例: 募集職種、勤務地、勤務時間、応募条件、実在社員の許諾済みコメントのみ使う",
+  },
+  {
+    match: ["宿泊", "観光"],
+    label: "客室、食事、アクセス、季節・予約条件",
+    placeholder: "例: 客室タイプ、食事内容、アクセス、予約方法、未入力の景色や周辺スポットは作らない",
+  },
+  {
+    match: ["フィットネス", "ジム"],
+    label: "設備、体験流れ、安全上の注意、効果保証の回避",
+    placeholder: "例: 体験内容、設備、持ち物、初心者向け、体重減少や短期激変は保証しない",
+  },
+  {
+    match: ["介護", "福祉"],
+    label: "施設種別、利用条件、医療連携、撮影許諾",
+    placeholder: "例: 施設種別、対象の要介護度、看護師体制、見学予約、入居者の撮影許諾範囲",
+  },
+  {
+    match: ["自動車", "整備"],
+    label: "車両状態、点検範囲、見積条件、保証範囲",
+    placeholder: "例: 車種、年式、点検項目、見積方法、事故歴・納期・保証は確認済み情報だけ使う",
+  },
+  {
+    match: ["クリーニング", "家事代行"],
+    label: "作業範囲、素材条件、予約方法、衛生表現",
+    placeholder: "例: 対応範囲、素材の注意点、集配可否、汚れ除去や除菌を保証しない",
+  },
+  {
+    match: ["ペット"],
+    label: "対象動物、施術・預かり範囲、安全配慮",
+    placeholder: "例: 対象の犬種・猫種、施術範囲、預かり時間、治療効果やストレスゼロは言わない",
+  },
+  {
+    match: ["冠婚葬祭"],
+    label: "相談範囲、費用確認、宗教・慣習への配慮",
+    placeholder: "例: 式の種類、相談範囲、費用確認の流れ、感動保証や不安の過剰煽りは避ける",
+  },
+  {
+    match: ["BtoB"],
+    label: "対象業務、導入条件、実績・削減率の根拠",
+    placeholder: "例: 対象部署、解決したい業務、導入期間、削減率や導入社数は根拠がある時だけ使う",
+  },
+];
+
+const DEFAULT_INDUSTRY_DETAIL_GUIDE = {
+  label: "価格、対象範囲、注意事項、撮影できる素材",
+  placeholder: "例: 価格、対象条件、撮影できる素材、避けたい表現、未確認の数値や実績は使わない",
+};
+
+function getIndustryDetailGuide(industry: string) {
+  return (
+    INDUSTRY_DETAIL_GUIDES.find((guide) =>
+      guide.match.some((keyword) => industry.includes(keyword)),
+    ) ?? DEFAULT_INDUSTRY_DETAIL_GUIDE
+  );
+}
+
 const emptyBrief: ScriptBrief = {
   industry: "",
   businessType: "",
+  industryDetails: "",
   target: "",
   theme: "",
   trendReference: "",
@@ -138,6 +245,7 @@ export default function AIContentPage() {
   const [listening, setListening] = useState(false);
   const recRef = useRef<ISpeechRecognition | null>(null);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const industryGuide = getIndustryDetailGuide(brief.industry);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -183,8 +291,8 @@ export default function AIContentPage() {
   }
 
   async function generatePlans() {
-    if (!brief.theme || !brief.target) {
-      toast("ターゲットと投稿テーマを入力してください", "error");
+    if (!brief.industry || !brief.businessType || !brief.theme || !brief.target) {
+      toast("業種、業態、ターゲット、投稿テーマを入力してください", "error");
       return;
     }
     setLoadingPlans(true);
@@ -474,6 +582,19 @@ export default function AIContentPage() {
                   </select>
                 </Field>
               </div>
+
+              <Field
+                label="業種別の重要条件"
+                hint={industryGuide.label}
+              >
+                <textarea
+                  value={brief.industryDetails}
+                  onChange={(e) => set("industryDetails", e.target.value)}
+                  placeholder={industryGuide.placeholder}
+                  rows={3}
+                  className={inputCls}
+                />
+              </Field>
 
               <Field
                 label="ターゲット"
